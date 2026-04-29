@@ -1,8 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "**/*", "use": "@vercel/static" }
-  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -12,8 +9,7 @@
       ]
     }
   ],
-  "routes": [
-    { "src": "/delivery-records", "dest": "/delivery-records.html" },
-    { "src": "/(.*)", "dest": "/$1" }
+  "rewrites": [
+    { "source": "/delivery-records", "destination": "/delivery-records.html" }
   ]
 }

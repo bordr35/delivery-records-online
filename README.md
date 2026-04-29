@@ -31,7 +31,7 @@ Fast options:
 - Vercel: import this folder/project. `vercel.json` is already included.
 - GitHub Pages: publish this folder as the site root, then open `delivery-records.html`.
 
-Important: the current Delivery Records page saves records privately in the browser using `localStorage`. Use `Saved Records -> Export Backup JSON` before switching devices, clearing browser data, or relying on a different phone. If you want true multi-device cloud sync later, add an authenticated database layer before storing customer/order evidence online.
+Important: Delivery Records is local-first and can also cloud-sync through the `Cloud Sync` page when a Vercel Blob store is connected. Sync payloads are encrypted in the browser with the user's cloud sync key before upload. JSON backup remains a device restore file, not a violation/dispute evidence file.
 
 Primary shift URL after deployment:
 

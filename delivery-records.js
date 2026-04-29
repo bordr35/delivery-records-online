@@ -1,8 +1,10 @@
-const APP_VERSION = "2.1.0";
+const APP_VERSION = "2.2.0";
 const STORE = "delivery_records_online_v2";
 const LEGACY_STORE = "delivery_records_online_v1";
 const DRAFTS = "delivery_records_drafts_v2";
 const PROOFS = "delivery_records_proof_shots_v1";
+const SYNC_META = "delivery_records_cloud_sync_meta_v1";
+const SYNC_SECRET = "delivery_records_cloud_sync_secret_v1";
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -10,6 +12,8 @@ const apps = ["", "Uber Eats", "DoorDash", "Grubhub", "Instacart", "Spark", "Roa
 const issueTypes = ["", "Missing Pay", "Wrong Pay", "Customer Claim", "Non-delivery Claim", "Contract Violation", "Deactivation Warning", "Merchant Issue", "Safety Issue", "App Bug", "Other"];
 let currentPage = "dashboard";
 let currentExport = { filename: "record.txt", text: "" };
+let syncTimer = 0;
+let suppressCloudQueue = false;
 
 const safeJson = (text, fallback) => {
   if (text == null || text === "") return fallback;
@@ -147,6 +151,7 @@ function rawRecords() {
 }
 function saveRecords(records) {
   localStorage.setItem(STORE, JSON.stringify(records));
+  queueCloudSync();
 }
 function drafts() {
   return safeJson(localStorage.getItem(DRAFTS), {});
@@ -160,9 +165,158 @@ function proofShots() {
 }
 function saveProofShots(value) {
   localStorage.setItem(PROOFS, JSON.stringify(value));
+  queueCloudSync();
 }
 function getRecord(id) {
   return rawRecords().find(record => String(record.id) === String(id));
+}
+function syncMeta() {
+  return safeJson(localStorage.getItem(SYNC_META), {});
+}
+function saveSyncMeta(value) {
+  localStorage.setItem(SYNC_META, JSON.stringify(value));
+}
+function cloudSecret() {
+  return sessionStorage.getItem(SYNC_SECRET) || localStorage.getItem(SYNC_SECRET) || "";
+}
+function setCloudSecret(secret, remember) {
+  sessionStorage.setItem(SYNC_SECRET, secret);
+  if (remember) localStorage.setItem(SYNC_SECRET, secret);
+  else localStorage.removeItem(SYNC_SECRET);
+}
+function clearCloudSecret() {
+  sessionStorage.removeItem(SYNC_SECRET);
+  localStorage.removeItem(SYNC_SECRET);
+}
+function bytesToB64(bytes) {
+  let binary = "";
+  bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+  return btoa(binary);
+}
+function b64ToBytes(value) {
+  return Uint8Array.from(atob(value), char => char.charCodeAt(0));
+}
+async function sha256Hex(value) {
+  const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(hash)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+async function deriveAesKey(secret, salt) {
+  const baseKey = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt, iterations: 220000, hash: "SHA-256" },
+    baseKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+async function cloudId(secret) {
+  return sha256Hex(`delivery-records-cloud-sync:${secret}`);
+}
+async function encryptBundle(secret, bundle) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveAesKey(secret, salt);
+  const body = new TextEncoder().encode(JSON.stringify(bundle));
+  const encrypted = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, body);
+  return {
+    version: 1,
+    appVersion: APP_VERSION,
+    encryptedAt: new Date().toISOString(),
+    salt: bytesToB64(salt),
+    iv: bytesToB64(iv),
+    ciphertext: bytesToB64(new Uint8Array(encrypted))
+  };
+}
+async function decryptBundle(secret, payload) {
+  const key = await deriveAesKey(secret, b64ToBytes(payload.salt));
+  const decrypted = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(payload.iv) }, key, b64ToBytes(payload.ciphertext));
+  return JSON.parse(new TextDecoder().decode(decrypted));
+}
+function localBundle() {
+  return {
+    appVersion: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    records: rawRecords(),
+    proofs: proofShots()
+  };
+}
+function newerItem(a, b) {
+  const at = Date.parse(a?.updatedAt || a?.createdAt || a?.saved || 0);
+  const bt = Date.parse(b?.updatedAt || b?.createdAt || b?.saved || 0);
+  return bt > at ? b : a;
+}
+function mergeById(localItems = [], remoteItems = []) {
+  const map = new Map();
+  [...remoteItems, ...localItems].forEach(item => {
+    if (!item?.id) return;
+    map.set(String(item.id), map.has(String(item.id)) ? newerItem(map.get(String(item.id)), item) : item);
+  });
+  return [...map.values()].sort((a, b) => Date.parse(b.updatedAt || b.createdAt || 0) - Date.parse(a.updatedAt || a.createdAt || 0));
+}
+function mergeBundles(local, remote) {
+  return {
+    appVersion: APP_VERSION,
+    exportedAt: new Date().toISOString(),
+    records: mergeById(local.records, remote?.records || []),
+    proofs: mergeById(local.proofs, remote?.proofs || [])
+  };
+}
+function applyBundle(bundle) {
+  suppressCloudQueue = true;
+  try {
+    saveRecords(Array.isArray(bundle.records) ? bundle.records : []);
+    saveProofShots(Array.isArray(bundle.proofs) ? bundle.proofs : []);
+  } finally {
+    suppressCloudQueue = false;
+  }
+}
+function queueCloudSync() {
+  if (suppressCloudQueue || !cloudSecret()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncNow({ silent: true }), 1600);
+}
+async function fetchCloudPayload(syncId) {
+  const response = await fetch(`/api/sync?id=${syncId}`, { cache: "no-store" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "sync-read-failed");
+  return body.exists ? body.payload : null;
+}
+async function writeCloudPayload(syncId, payload) {
+  const response = await fetch(`/api/sync?id=${syncId}`, {
+    method: "PUT",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "sync-write-failed");
+  return body;
+}
+async function syncNow(options = {}) {
+  const secret = cloudSecret();
+  if (!secret) {
+    if (!options.silent) toast("Enter a cloud sync key first.", "err");
+    return false;
+  }
+  try {
+    const id = await cloudId(secret);
+    const remotePayload = await fetchCloudPayload(id);
+    const remoteBundle = remotePayload ? await decryptBundle(secret, remotePayload) : null;
+    const merged = mergeBundles(localBundle(), remoteBundle);
+    applyBundle(merged);
+    const encrypted = await encryptBundle(secret, merged);
+    await writeCloudPayload(id, encrypted);
+    saveSyncMeta({ enabled: true, lastSyncedAt: new Date().toISOString(), syncIdPreview: `${id.slice(0, 8)}...${id.slice(-4)}` });
+    updateAll(false);
+    if (currentPage === "sync") show("sync");
+    if (!options.silent) toast("Cloud sync complete.");
+    return true;
+  } catch (error) {
+    saveSyncMeta({ ...syncMeta(), lastError: error.message, lastErrorAt: new Date().toISOString() });
+    if (currentPage === "sync") show("sync");
+    if (!options.silent) toast(`Cloud sync failed: ${error.message}`, "err");
+    return false;
+  }
 }
 
 function collectData(type) {
@@ -312,7 +466,7 @@ function renderDashboard() {
           <div class="status-chip"><span>Saved today</span><strong>${m.todays.length}</strong></div>
           <div class="status-chip"><span>Follow-ups</span><strong>${m.followUps}</strong></div>
           <div class="status-chip"><span>Dispute records</span><strong>${m.disputes}</strong></div>
-          <div class="status-chip"><span>Storage</span><strong>Browser private</strong></div>
+          <div class="status-chip"><span>Storage</span><strong>${cloudSecret() ? "Cloud sync on" : "Browser private"}</strong></div>
         </div>
       </div>
     </section>
@@ -385,6 +539,94 @@ function renderProofVault() {
     ${renderProofUploader("Add Proof Shots", "Tip: save only the useful shots. Browser storage is private but limited, so export/download anything critical.")}
     ${renderProofLibrary()}`;
 }
+function strategyRows() {
+  return rawRecords().map(record => {
+    const data = record.data || {};
+    const p = prefix(record.type);
+    const date = data[`${p}-date`] || data["dl-date"] || data["ds-date"] || record.createdAt?.slice(0, 10) || "";
+    const app = data[`${p}-app`] || data["dl-app"] || data["ds-app"] || "Unknown";
+    const zone = data[`${p}-zone`] || data["dl-zone"] || data["ds-zone"] || "Unknown";
+    const earn = num(data["dl-total"]) || num(data["wk-earn"]);
+    const expense = record.type === "expense" ? num(data["ex-amount"]) : num(data["dl-gas"]) + num(data["dl-tolls"]) + num(data["dl-parking"]) + num(data["dl-other-exp"]);
+    const miles = num(data["dl-miles"]) + num(data["ml-miles"]) + num(data["wk-miles"]);
+    return { record, date, app, zone, earn, expense, miles, net: earn - expense };
+  });
+}
+function groupStrategy(rows, key) {
+  const map = new Map();
+  rows.forEach(row => {
+    const name = row[key] || "Unknown";
+    const item = map.get(name) || { name, count: 0, net: 0, earn: 0, expense: 0, miles: 0, disputes: 0 };
+    item.count += 1;
+    item.net += row.net;
+    item.earn += row.earn;
+    item.expense += row.expense;
+    item.miles += row.miles;
+    item.disputes += row.record.type === "dispute" ? 1 : 0;
+    map.set(name, item);
+  });
+  return [...map.values()].sort((a, b) => b.net - a.net);
+}
+function strategyList(items, empty) {
+  if (!items.length) return `<p>${empty}</p>`;
+  return `<ul>${items.slice(0, 5).map(item => `<li><strong>${esc(item.name)}</strong> · ${money(item.net) || "$0.00"} net · ${item.count} records · ${item.miles.toFixed(1)} mi${item.disputes ? ` · ${item.disputes} disputes` : ""}</li>`).join("")}</ul>`;
+}
+function renderStrategy() {
+  const rows = strategyRows();
+  const appGroups = groupStrategy(rows, "app");
+  const zoneGroups = groupStrategy(rows, "zone");
+  const totalNet = rows.reduce((sum, row) => sum + row.net, 0);
+  const totalMiles = rows.reduce((sum, row) => sum + row.miles, 0);
+  const disputeZones = [...zoneGroups].sort((a, b) => b.disputes - a.disputes).filter(item => item.disputes);
+  const best = zoneGroups[0]?.name || appGroups[0]?.name || "not enough data yet";
+  const recommendation = rows.length < 5
+    ? "Log a few more real shifts before trusting patterns. Strategy gets useful once it has repeated zones, apps, miles, pay, and issues."
+    : `Lean toward ${best} when the conditions match, and keep logging proof when the app, merchant, or payout feels off.`;
+  return `
+    <div class="rule blue"><h3>Delivery Strategy Analysis</h3>This turns your synced records into practical strategy: what pays, what burns time/miles, and where disputes cluster.</div>
+    <section class="metrics">
+      <div class="metric"><span class="metric-label">Analyzed Records</span><strong class="metric-value">${rows.length}</strong></div>
+      <div class="metric"><span class="metric-label">Tracked Net</span><strong class="metric-value blue">${money(totalNet) || "$0.00"}</strong></div>
+      <div class="metric"><span class="metric-label">Tracked Miles</span><strong class="metric-value yellow">${totalMiles.toFixed(1)}</strong></div>
+      <div class="metric"><span class="metric-label">Net / Mile</span><strong class="metric-value">${totalMiles ? money(totalNet / totalMiles) : "$0.00"}</strong></div>
+    </section>
+    <section class="strategy-grid">
+      <article class="strategy-card"><h4>Best Apps</h4>${strategyList(appGroups, "No app data yet.")}</article>
+      <article class="strategy-card"><h4>Best Zones</h4>${strategyList(zoneGroups, "No zone data yet.")}</article>
+      <article class="strategy-card"><h4>Risk Watch</h4>${strategyList(disputeZones, "No dispute clusters yet.")}</article>
+      <article class="strategy-card"><h4>Current Read</h4><p>${recommendation}</p><p>Cloud sync makes this stronger because your phone and desktop records roll into the same dataset.</p></article>
+    </section>`;
+}
+function renderSync() {
+  const meta = syncMeta();
+  const connected = Boolean(cloudSecret());
+  const statusClass = meta.lastError ? "bad" : connected ? "good" : "warn";
+  const statusText = meta.lastError ? `Last error: ${meta.lastError}` : connected ? "Key loaded on this device" : "No cloud key loaded";
+  return `
+    <div class="rule"><h3>Encrypted Cloud Sync</h3>Use one private cloud key across your phone and desktop. Records and proof shots are encrypted in the browser before upload; the server stores ciphertext.</div>
+    <section class="panel">
+      <div class="panel-head"><div><h3>Connect This Device</h3><p>Use a long phrase you can remember. Same key = same cloud vault.</p></div></div>
+      <div class="panel-body">
+        <div class="field-grid">
+          <div class="field full"><label for="sync-key">Cloud Sync Key</label><input id="sync-key" type="password" autocomplete="current-password" placeholder="Use a long private phrase"></div>
+          <label class="check-row full"><input id="sync-remember" type="checkbox"> Remember this key on this device</label>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" type="button" id="sync-connect">Connect + Sync</button>
+          <button class="btn ghost" type="button" id="sync-now">Sync Now</button>
+          <button class="btn ghost" type="button" id="sync-disconnect">Disconnect Device</button>
+        </div>
+        <div class="sync-status">
+          <span class="sync-pill ${statusClass}">${esc(statusText)}</span>
+          <span class="sync-pill">Last sync: ${meta.lastSyncedAt ? fmtDateTime(meta.lastSyncedAt) : "never"}</span>
+          <span class="sync-pill">Vault: ${meta.syncIdPreview || "not set"}</span>
+          <span class="sync-pill">Records: ${rawRecords().length}</span>
+          <span class="sync-pill">Proof shots: ${proofShots().length}</span>
+        </div>
+      </div>
+    </section>
+    <div class="rule yellow"><h3>Important</h3>If you forget the cloud key, encrypted cloud data cannot be decrypted. That is the privacy tradeoff. Keep the key somewhere safe.</div>`;
+}
 function renderBackup() {
   return `
     <div class="rule yellow"><h3>Device Backup Only</h3>Use JSON to move or restore app data. Do not send JSON to support. Use Violation Packet for disputes.</div>
@@ -405,7 +647,7 @@ function renderGuide() {
     <div class="rule"><h3>1. Capture right away</h3>Order screens, pickup/dropoff proof, support chats, payout screens, receipts, mileage, and anything tied to money or safety.</div>
     <div class="rule blue"><h3>2. If a platform claims a violation</h3>Save a Dispute / Support record first. Add Proof Notes for screenshots/photos. Then build the Violation Packet and send the plain text appeal plus files.</div>
     <div class="rule yellow"><h3>3. End-of-shift habit</h3>Save Daily Log, export any important records, and download a device backup if the day involved money or account risk.</div>
-    <div class="rule red"><h3>4. Privacy boundary</h3>This static app does not upload your records to a database. That is intentional until you decide you want authenticated cloud sync.</div>`;
+    <div class="rule red"><h3>4. Privacy boundary</h3>Cloud Sync encrypts your records and proof shots in this browser before upload. Without a cloud key loaded, the app remains browser-local.</div>`;
 }
 function renderProofUploader(title, description) {
   return `
@@ -542,8 +784,10 @@ function renderPage(page) {
   if (page === "dashboard") return renderDashboard();
   if (page === "quick") return renderQuick();
   if (page === "records") return renderRecords();
+  if (page === "strategy") return renderStrategy();
   if (page === "packet") return renderPacket();
   if (page === "proofshots") return renderProofVault();
+  if (page === "sync") return renderSync();
   if (page === "backup") return renderBackup();
   if (page === "guide") return renderGuide();
   if (formDefs[page]) return renderFormPage(page);
@@ -556,7 +800,7 @@ function show(page) {
   currentPage = page;
   $("#pages").innerHTML = `<section class="page active" id="page-${page}">${renderPage(page)}</section>`;
   $$(".nav").forEach(btn => btn.classList.toggle("active", btn.dataset.page === page));
-  $("#page-title").textContent = formDefs[page]?.label || ({ dashboard: "Dashboard", quick: "Quick Capture", records: "Records", packet: "Violation Packet", proofshots: "Proof Shots", backup: "Backup / Restore", guide: "Guide" }[page] || "Dashboard");
+  $("#page-title").textContent = formDefs[page]?.label || ({ dashboard: "Dashboard", quick: "Quick Capture", records: "Records", strategy: "Strategy", packet: "Violation Packet", proofshots: "Proof Shots", sync: "Cloud Sync", backup: "Backup / Restore", guide: "Guide" }[page] || "Dashboard");
   closeSidebar();
   hydratePage(page);
   updateAll(false);
@@ -578,6 +822,7 @@ function updateAll(rerenderDashboard = true) {
   $("#today-chip").textContent = new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
   updateFilenames();
   if (currentPage === "records") renderRecordList();
+  if (["strategy", "sync"].includes(currentPage) && rerenderDashboard) show(currentPage);
   if (currentPage === "dashboard" && rerenderDashboard) show("dashboard");
 }
 
@@ -770,6 +1015,7 @@ async function addProofFiles(files) {
       type: "image/jpeg",
       originalSize: file.size || 0,
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       note: "",
       dataUrl
     });
@@ -858,7 +1104,7 @@ document.addEventListener("input", event => {
   if (formDefs[formPage]) saveDraft(formPage);
   if (["record-search", "record-type-filter", "record-status-filter"].includes(event.target.id)) renderRecordList();
   if (event.target.matches("[data-proof-note]")) {
-    saveProofShots(proofShots().map(shot => shot.id === event.target.dataset.proofNote ? { ...shot, note: event.target.value } : shot));
+    saveProofShots(proofShots().map(shot => shot.id === event.target.dataset.proofNote ? { ...shot, note: event.target.value, updatedAt: new Date().toISOString() } : shot));
   }
 });
 document.addEventListener("change", event => {
@@ -884,6 +1130,23 @@ $("#print-btn").addEventListener("click", () => window.print());
 $("#reload-app").addEventListener("click", () => location.reload());
 
 document.addEventListener("click", event => {
+  if (event.target.id === "sync-connect") {
+    const secret = $("#sync-key")?.value.trim();
+    if (!secret || secret.length < 12) return toast("Use a longer cloud sync key.", "err");
+    setCloudSecret(secret, Boolean($("#sync-remember")?.checked));
+    toast("Cloud key loaded. Syncing...");
+    syncNow();
+  }
+  if (event.target.id === "sync-now") {
+    toast("Syncing cloud vault...");
+    syncNow();
+  }
+  if (event.target.id === "sync-disconnect") {
+    clearCloudSecret();
+    saveSyncMeta({ ...syncMeta(), enabled: false });
+    show("sync");
+    toast("Cloud key removed from this device.");
+  }
   if (event.target.id === "packet-preview") openExport(buildViolationPacket());
   if (event.target.id === "packet-copy") navigator.clipboard.writeText(buildViolationPacket().text).then(() => toast("Appeal packet copied."));
   if (event.target.id === "packet-download") {
@@ -892,11 +1155,13 @@ document.addEventListener("click", event => {
     toast("Violation packet downloaded.");
   }
   if (event.target.id === "backup-json") {
-    const payload = { version: APP_VERSION, exportedAt: new Date().toISOString(), records: rawRecords() };
+    const payload = { version: APP_VERSION, exportedAt: new Date().toISOString(), records: rawRecords(), proofs: proofShots() };
     download(`delivery-records-device-backup-${todayIso()}.json`, JSON.stringify(payload, null, 2), "application/json");
   }
   if (event.target.id === "clear-all" && confirm("Delete ALL browser records? Download a backup first if you need one.")) {
     localStorage.removeItem(STORE);
+    localStorage.removeItem(PROOFS);
+    queueCloudSync();
     updateAll();
     toast("All browser records cleared.", "err");
   }
@@ -908,7 +1173,7 @@ document.addEventListener("change", event => {
   file.text().then(text => {
     const payload = safeJson(text, null);
     if (!payload || !Array.isArray(payload.records)) throw new Error("Bad backup");
-    saveRecords(payload.records);
+    applyBundle({ records: payload.records, proofs: payload.proofs || proofShots() });
     updateAll();
     toast("Backup restored.");
   }).catch(() => toast("Could not restore that JSON backup.", "err"));

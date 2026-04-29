@@ -225,6 +225,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--green); box-shad
 .quick-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: rgba(0,0,0,.14); }
 .quick-card h4 { margin: 0 0 8px; color: var(--bright); font-family: var(--cond); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; }
 .quick-card p { margin: 0 0 12px; color: var(--muted); line-height: 1.45; }
+.strategy-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.strategy-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: rgba(0,0,0,.16); }
+.strategy-card h4 { margin: 0 0 8px; color: var(--bright); font-family: var(--cond); font-size: 20px; letter-spacing: .08em; text-transform: uppercase; }
+.strategy-card strong { color: var(--green); font-family: var(--mono); }
+.strategy-card p, .strategy-card li { color: var(--muted); line-height: 1.45; }
+.strategy-card ul { margin: 8px 0 0 18px; padding: 0; }
+.sync-status { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sync-pill { border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-family: var(--mono); font-size: 11px; padding: 6px 10px; }
+.sync-pill.good { border-color: rgba(61,255,114,.55); color: var(--green); }
+.sync-pill.warn { border-color: rgba(255,194,51,.65); color: var(--yellow); }
+.sync-pill.bad { border-color: rgba(255,69,69,.65); color: var(--red); }
+.check-row { display: flex; align-items: center; gap: 8px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.check-row input { width: auto; }
 .case-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
 .case-step { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: rgba(0,0,0,.16); }
 .case-step b { display: block; color: var(--green); font-family: var(--cond); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }

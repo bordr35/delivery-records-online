@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0b0d0b">
   <title>Delivery Records</title>
   <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="stylesheet" href="./delivery-records.css?v=4">
+  <link rel="stylesheet" href="./delivery-records.css?v=5">
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -23,6 +23,7 @@
           <div class="nav-label">Command</div>
           <a class="nav active" href="#dashboard" data-page="dashboard">Dashboard</a>
           <a class="nav" href="#records" data-page="records">Records <span class="count" id="nav-count">0</span></a>
+          <a class="nav" href="#strategy" data-page="strategy">Strategy</a>
           <a class="nav hot" href="#packet" data-page="packet">Violation Packet</a>
         </div>
         <div class="nav-group">
@@ -42,6 +43,7 @@
         </div>
         <div class="nav-group">
           <div class="nav-label">System</div>
+          <a class="nav" href="#sync" data-page="sync">Cloud Sync</a>
           <a class="nav" href="#backup" data-page="backup">Backup / Restore</a>
           <a class="nav" href="#guide" data-page="guide">Guide</a>
         </div>
@@ -98,6 +100,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script src="./delivery-records.js?v=4" defer></script>
+  <script src="./delivery-records.js?v=5" defer></script>
 </body>
 </html>
