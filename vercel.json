@@ -9,6 +9,7 @@
       ]
     }
   ],
+  "cleanUrls": true,
   "rewrites": [
     { "source": "/delivery-records", "destination": "/delivery-records.html" }
   ]
