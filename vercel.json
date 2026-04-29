@@ -1,6 +1,8 @@
 {
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "version": 2,
+  "builds": [
+    { "src": "**/*", "use": "@vercel/static" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -10,7 +12,8 @@
       ]
     }
   ],
-  "rewrites": [
-    { "source": "/delivery-records", "destination": "/delivery-records.html" }
+  "routes": [
+    { "src": "/delivery-records", "dest": "/delivery-records.html" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 }
