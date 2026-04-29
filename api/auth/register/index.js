@@ -10,7 +10,7 @@ import {
   saveAccount,
   validateEmail,
   validatePassword,
-} from "../_lib/account.mjs";
+} from "../../_lib/account.mjs";
 
 function send(response, status, payload, cookies = []) {
   response.statusCode = status;
@@ -30,16 +30,17 @@ export default async function handler(request, response) {
     const existing = await readAccountByEmail(normalizedEmail);
     if (existing) return send(response, 409, { error: "account-exists" });
 
+    const passwordSalt = randomSalt();
     const account = {
       accountId: accountIdForEmail(normalizedEmail),
       email: normalizedEmail,
       displayName: String(displayName || "").trim() || normalizedEmail.split("@")[0],
-      passwordSalt: randomSalt(),
+      passwordSalt,
+      passwordHash: hashPassword(password, passwordSalt),
       vaultSalt: randomSalt(),
       createdAt: new Date().toISOString(),
       lastLoginAt: new Date().toISOString(),
     };
-    account.passwordHash = hashPassword(password, account.passwordSalt);
     await saveAccount(account);
     return send(response, 200, { ok: true, account: publicAccount(account) }, [makeSessionCookie(account)]);
   } catch (error) {

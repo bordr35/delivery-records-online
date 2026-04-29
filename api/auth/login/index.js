@@ -6,7 +6,7 @@ import {
   readJsonBody,
   saveAccount,
   verifyPassword,
-} from "../_lib/account.mjs";
+} from "../../_lib/account.mjs";
 
 function send(response, status, payload, cookies = []) {
   response.statusCode = status;

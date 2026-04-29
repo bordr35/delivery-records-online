@@ -1,4 +1,4 @@
-import { clearSessionCookie } from "../_lib/account.mjs";
+import { clearSessionCookie } from "../../_lib/account.mjs";
 
 function send(response, status, payload, cookies = []) {
   response.statusCode = status;

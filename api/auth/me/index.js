@@ -1,4 +1,4 @@
-import { publicAccount, readCurrentAccount } from "../_lib/account.mjs";
+import { publicAccount, readCurrentAccount } from "../../_lib/account.mjs";
 
 function send(response, status, payload) {
   response.statusCode = status;
