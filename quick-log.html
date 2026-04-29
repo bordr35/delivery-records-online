@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quick Log</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: rgba(17, 24, 39, 0.94);
+        --panel-2: rgba(28, 36, 52, 0.94);
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #f3f7ff;
+        --muted: #a7b1c2;
+        --accent: #ff8a3d;
+        --accent-2: #61d4a8;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+        --radius: 20px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 138, 61, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(97, 212, 168, 0.14), transparent 28%),
+          linear-gradient(180deg, #111827 0%, #0b0f15 100%);
+      }
+      body { padding: 24px; }
+      .shell { max-width: 1360px; margin: 0 auto; display: grid; gap: 18px; }
+      .hero, .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius);
+      }
+      .hero {
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      h1, h2, p { margin: 0; }
+      h1 { font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.02; margin-bottom: 10px; }
+      .hero-copy, .panel-header p, .hint, .step { color: var(--muted); line-height: 1.55; }
+      .toolbar { display: grid; gap: 10px; min-width: min(100%, 460px); }
+      .toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .field { display: grid; gap: 6px; }
+      .field label {
+        color: var(--muted);
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .field input, .field textarea, .field select {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        padding: 12px 14px;
+        font: inherit;
+        outline: none;
+      }
+      .button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .button.primary { color: #171a21; background: linear-gradient(135deg, var(--accent), #ffbf6b); }
+      .button.secondary { color: #10241b; background: linear-gradient(135deg, #61d4a8, #b5f0d9); }
+      .grid { display: grid; grid-template-columns: 1.04fr 0.96fr; gap: 18px; }
+      .stack { display: grid; gap: 18px; }
+      .panel { padding: 18px; }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 14px;
+      }
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .source-chip.live {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+      .source-chip.sample {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+      .session-card {
+        display: grid;
+        gap: 8px;
+        padding: 14px;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+      }
+      .session-card strong {
+        display: block;
+        font-size: 1rem;
+      }
+      .session-card .meta {
+        color: var(--muted);
+        line-height: 1.5;
+        font-size: 0.92rem;
+      }
+      .quick-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .quick-card {
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        text-align: left;
+        color: var(--text);
+        cursor: pointer;
+        display: grid;
+        gap: 8px;
+      }
+      .quick-card strong { font-size: 1rem; }
+      .quick-card span { color: var(--muted); font-size: 0.94rem; line-height: 1.45; }
+      .quick-card:hover { border-color: rgba(255, 138, 61, 0.5); }
+      .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tag {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+      }
+      .tag.good { color: #c5f6df; background: rgba(97, 212, 168, 0.14); }
+      .tag.warn { color: #ffe0b0; background: rgba(255, 188, 107, 0.16); }
+      .tag.bad { color: #ffc1cb; background: rgba(255, 113, 138, 0.16); }
+      .list { display: grid; gap: 10px; }
+      .item {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 6px;
+      }
+      .item strong { display: block; }
+      pre {
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: #d8e3f5;
+        line-height: 1.5;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+      textarea {
+        min-height: 124px;
+        resize: vertical;
+      }
+      .buttons-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      @media (max-width: 980px) {
+        .grid, .quick-grid, .buttons-grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        body { padding: 14px; }
+        .hero, .panel { padding: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div>
+          <div class="source-chip sample" id="data-source-chip">Using sample dashboard data</div>
+          <h1>Quick Log</h1>
+          <p class="hero-copy">
+            Tap one button when something happens during the shift. That is it. The log gets folded into the end-of-shift packet later.
+          </p>
+        </div>
+        <div class="toolbar">
+          <div class="field">
+            <label for="quick-note">Short note</label>
+            <textarea id="quick-note" placeholder="Example: Door code issue at Wingstop, keep photo."></textarea>
+          </div>
+          <div class="session-card" id="session-card">
+            <strong id="session-title">No active shift</strong>
+            <div class="meta" id="session-meta">Tap Start Shift, or tap a quick tag and the app will start one for you.</div>
+          </div>
+          <div class="toolbar-row">
+            <button class="button secondary" id="start-shift" type="button">Start Shift</button>
+            <button class="button" id="end-shift" type="button">End Shift</button>
+            <button class="button" id="break-shift" type="button">Break</button>
+            <button class="button" id="load-live-data" type="button">Use Dashboard Data</button>
+            <button class="button primary" id="save-log" type="button">Save Log</button>
+            <button class="button secondary" id="copy-log" type="button">Copy Latest Log</button>
+            <a class="button" href="./shift-packet.html">Open Shift Packet</a>
+            <a class="button" href="./evidence-packet.html">Open Evidence Packet</a>
+            <a class="button" href="./index.html">Open Dashboard</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Fast Tags</h2>
+            <p>Use these during the shift when you only have a second or two.</p>
+          </div>
+        </div>
+        <div class="quick-grid" id="quick-grid"></div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Recent Logs</h2>
+                <p>The most recent taps, saved locally for the shift packet.</p>
+              </div>
+            </div>
+            <div class="list" id="log-list"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Packet Preview</h2>
+                <p>This is what the shift packet can pull in later.</p>
+              </div>
+            </div>
+            <pre id="packet-output">No logs yet.</pre>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const DASHBOARD_STORAGE_KEY = "food-gig-dashboard-state-v1";
+      const QUICK_LOG_STORAGE_KEY = "food-gig-quick-log-v1";
+      const SHIFT_SESSION_KEY = "food-gig-shift-session-v1";
+
+      const sampleContext = {
+        date: "2026-04-17",
+        platform: "DoorDash",
+        zone: "west-side",
+      };
+
+      const quickTags = [
+        { id: "merchant-delay", label: "Merchant delay", detail: "Slow pickup or prep delay.", tone: "warn" },
+        { id: "customer-access", label: "Customer access", detail: "Gate, apartment, or door-code issue.", tone: "warn" },
+        { id: "proof-photo", label: "Proof photo", detail: "Dropoff, receipt, or offer screenshot.", tone: "good" },
+        { id: "bonus", label: "Bonus / challenge", detail: "Promo, reward, or bonus event.", tone: "good" },
+        { id: "zone-note", label: "Zone note", detail: "Good or bad area worth remembering.", tone: "neutral" },
+        { id: "order-issue", label: "Order issue", detail: "Missing item, wrong order, or cancel.", tone: "bad" },
+      ];
+
+      const state = {
+        source: "sample",
+        context: sampleContext,
+        logs: [],
+        selectedTag: "",
+        session: null,
+      };
+
+      const dataSourceChip = document.getElementById("data-source-chip");
+      const loadLiveDataBtn = document.getElementById("load-live-data");
+      const saveLogBtn = document.getElementById("save-log");
+      const copyLogBtn = document.getElementById("copy-log");
+      const startShiftBtn = document.getElementById("start-shift");
+      const endShiftBtn = document.getElementById("end-shift");
+      const breakShiftBtn = document.getElementById("break-shift");
+      const quickNote = document.getElementById("quick-note");
+      const sessionTitle = document.getElementById("session-title");
+      const sessionMeta = document.getElementById("session-meta");
+      const quickGrid = document.getElementById("quick-grid");
+      const logList = document.getElementById("log-list");
+      const packetOutput = document.getElementById("packet-output");
+
+      function safeStorageGet(key) {
+        try { return window.localStorage.getItem(key); } catch { return null; }
+      }
+
+      function safeStorageSet(key, value) {
+        try { window.localStorage.setItem(key, value); return true; } catch { return false; }
+      }
+
+      function safeParseJson(raw) {
+        try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+      }
+
+      function formatDuration(ms) {
+        const safeMs = Math.max(0, Number(ms) || 0);
+        const totalMinutes = Math.floor(safeMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours <= 0) return `${minutes}m`;
+        return `${hours}h ${minutes}m`;
+      }
+
+      function getSessionDurationMs(session) {
+        if (!session?.startedAt) return 0;
+        const started = new Date(session.startedAt).getTime();
+        const ended = session.endedAt ? new Date(session.endedAt).getTime() : Date.now();
+        if (!Number.isFinite(started) || !Number.isFinite(ended)) return 0;
+        return Math.max(0, ended - started);
+      }
+
+      function setSource(source) {
+        state.source = source;
+        const live = source === "live";
+        dataSourceChip.textContent = live ? "Using live dashboard data" : "Using sample dashboard data";
+        dataSourceChip.classList.toggle("live", live);
+        dataSourceChip.classList.toggle("sample", !live);
+      }
+
+      function loadDashboardContext() {
+        const saved = safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY));
+        if (!saved) return sampleContext;
+        const shifts = Array.isArray(saved.shifts) ? saved.shifts : [];
+        const latestShift = shifts[0] || {};
+        return {
+          date: latestShift.date || "unknown",
+          platform: latestShift.platform || "DoorDash",
+          zone: latestShift.zone || "unknown",
+        };
+      }
+
+      function loadLogs() {
+        const saved = safeParseJson(safeStorageGet(QUICK_LOG_STORAGE_KEY));
+        return Array.isArray(saved) ? saved : [];
+      }
+
+      function loadSession() {
+        return safeParseJson(safeStorageGet(SHIFT_SESSION_KEY));
+      }
+
+      function inferSessionFromLogs(logs) {
+        const items = Array.isArray(logs) ? logs : [];
+        if (!items.length) return null;
+        const shiftId = items[0]?.shiftId || "";
+        if (!shiftId) return null;
+        const matching = items.filter((entry) => entry.shiftId === shiftId);
+        const first = matching[matching.length - 1] || items[items.length - 1];
+        const last = matching[0] || items[0];
+        return {
+          id: shiftId,
+          status: "ended",
+          date: first?.date || "unknown",
+          platform: first?.platform || "DoorDash",
+          zone: first?.zone || "unknown",
+          startedAt: first?.createdAt || "",
+          endedAt: last?.createdAt || "",
+        };
+      }
+
+      function persistLogs() {
+        safeStorageSet(QUICK_LOG_STORAGE_KEY, JSON.stringify(state.logs));
+      }
+
+      function persistSession() {
+        if (state.session) {
+          safeStorageSet(SHIFT_SESSION_KEY, JSON.stringify(state.session));
+        }
+      }
+
+      function createSession(status = "active") {
+        const now = new Date().toISOString();
+        return {
+          id: `shift-${now.replace(/[-:.TZ]/g, "").slice(0, 14)}`,
+          status,
+          date: state.context.date || "unknown",
+          platform: state.context.platform || "DoorDash",
+          zone: state.context.zone || "unknown",
+          startedAt: status === "active" ? now : "",
+          endedAt: "",
+          breakStartedAt: "",
+          breaks: [],
+        };
+      }
+
+      function hasActiveSession() {
+        return Boolean(state.session && state.session.status === "active");
+      }
+
+      function hasPausedSession() {
+        return Boolean(state.session && state.session.status === "paused");
+      }
+
+      function getBreakDurationMs(session) {
+        const breaks = Array.isArray(session?.breaks) ? session.breaks : [];
+        const completed = breaks.reduce((sum, entry) => {
+          const start = new Date(entry.startedAt || "").getTime();
+          const end = new Date(entry.endedAt || "").getTime();
+          if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return sum;
+          return sum + (end - start);
+        }, 0);
+        const currentBreakStart = session?.status === "paused" && session?.breakStartedAt ? new Date(session.breakStartedAt).getTime() : 0;
+        const currentBreak = Number.isFinite(currentBreakStart) && currentBreakStart > 0 ? Math.max(0, Date.now() - currentBreakStart) : 0;
+        return completed + currentBreak;
+      }
+
+      function startShift() {
+        state.session = createSession("active");
+        persistSession();
+        renderSession();
+      }
+
+      function endShift() {
+        if (!state.session) return;
+        if (state.session.status === "paused" && state.session.breakStartedAt) {
+          state.session = {
+            ...state.session,
+            breaks: [
+              ...(Array.isArray(state.session.breaks) ? state.session.breaks : []),
+              { startedAt: state.session.breakStartedAt, endedAt: new Date().toISOString() },
+            ],
+            breakStartedAt: "",
+          };
+        }
+        state.session = {
+          ...state.session,
+          status: "ended",
+          endedAt: new Date().toISOString(),
+        };
+        persistSession();
+        renderSession();
+      }
+
+      function pauseShift() {
+        if (!hasActiveSession()) return;
+        state.session = {
+          ...state.session,
+          status: "paused",
+          breakStartedAt: new Date().toISOString(),
+        };
+        persistSession();
+        renderSession();
+      }
+
+      function resumeShift() {
+        if (!hasPausedSession()) return;
+        const now = new Date().toISOString();
+        state.session = {
+          ...state.session,
+          status: "active",
+          breaks: [
+            ...(Array.isArray(state.session.breaks) ? state.session.breaks : []),
+            state.session.breakStartedAt ? { startedAt: state.session.breakStartedAt, endedAt: now } : null,
+          ].filter(Boolean),
+          breakStartedAt: "",
+        };
+        persistSession();
+        renderSession();
+      }
+
+      function toggleBreak() {
+        if (hasActiveSession()) {
+          pauseShift();
+          return;
+        }
+        if (hasPausedSession()) {
+          resumeShift();
+        }
+      }
+
+      function ensureShiftSession() {
+        if (!state.session) {
+          state.session = createSession("active");
+          persistSession();
+        }
+        if (state.session.status !== "active") {
+          state.session = createSession("active");
+          persistSession();
+        }
+        renderSession();
+        return state.session;
+      }
+
+      function renderSession() {
+        if (!state.session) {
+          sessionTitle.textContent = "No active shift";
+          sessionMeta.textContent = "Tap Start Shift, or tap a quick tag and the app will start one for you.";
+          return;
+        }
+
+        const label = state.session.status === "active" ? "Active shift" : "Last shift ended";
+        const started = state.session.startedAt ? new Date(state.session.startedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "just now";
+        const ended = state.session.endedAt ? new Date(state.session.endedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+        const duration = formatDuration(getSessionDurationMs(state.session));
+        const breakDuration = formatDuration(getBreakDurationMs(state.session));
+        if (breakShiftBtn) {
+          breakShiftBtn.textContent = state.session.status === "paused" ? "Resume" : "Break";
+        }
+        sessionTitle.textContent = `${label}: ${state.session.date} · ${state.session.platform}`;
+        sessionMeta.textContent = state.session.status === "active"
+          ? `Started ${started} · ${duration} elapsed · Breaks ${breakDuration} · ${state.session.zone} · session ${state.session.id}`
+          : `Ended ${ended || "recently"} · ${duration} total · Breaks ${breakDuration} · ${state.session.zone} · session ${state.session.id}`;
+      }
+
+      function getSelectedTag() {
+        return quickTags.find((tag) => tag.id === state.selectedTag) || quickTags[0];
+      }
+
+      function renderQuickGrid() {
+        quickGrid.innerHTML = quickTags
+          .map(
+            (tag) => `
+              <button class="quick-card" type="button" data-tag="${tag.id}">
+                <strong>${tag.label}</strong>
+                <span>${tag.detail}</span>
+                <span class="tag ${tag.tone}">${tag.id}</span>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function renderLogs() {
+        const currentSessionId = state.session?.id || "";
+        const items = state.logs.filter((entry) => entry.shiftId === currentSessionId).slice(0, 8);
+        if (!items.length) {
+          logList.innerHTML = `
+            <div class="item">
+              <strong>No logs yet.</strong>
+              <span>Tap Start Shift, then a fast tag to start building the shift packet.</span>
+            </div>
+          `;
+          packetOutput.textContent = "No logs yet.";
+          return;
+        }
+
+        logList.innerHTML = items
+          .map(
+            (entry) => `
+              <div class="item">
+                <strong>${entry.tagLabel}</strong>
+                <span>${entry.note || "No note provided."}</span>
+                <div class="tag-row">
+                  <span class="tag ${entry.tone || "neutral"}">${entry.tag}</span>
+                  <span class="tag">${entry.date || "unknown date"}</span>
+                  <span class="tag">${entry.platform || "unknown platform"}</span>
+                  <span class="tag">${entry.shiftId || "no-shift"}</span>
+                </div>
+              </div>
+            `,
+          )
+          .join("");
+        packetOutput.textContent = JSON.stringify(items, null, 2);
+      }
+
+      function makeLog(tag) {
+        const session = ensureShiftSession();
+        return {
+          id: `log-${Date.now()}`,
+          tag: tag.id,
+          tagLabel: tag.label,
+          tone: tag.tone,
+          note: quickNote.value.trim(),
+          date: state.context.date || "unknown",
+          platform: state.context.platform || "DoorDash",
+          zone: state.context.zone || "unknown",
+          shiftId: session.id,
+          shiftStatus: session.status,
+          shiftLabel: `${session.date} · ${session.platform} · ${session.zone}`,
+          createdAt: new Date().toISOString(),
+        };
+      }
+
+      function addLog(tag) {
+        state.selectedTag = tag.id;
+        const entry = makeLog(tag);
+        state.logs = [entry, ...state.logs].slice(0, 24);
+        persistLogs();
+        renderLogs();
+        copyLogBtn.textContent = `Copy Latest ${tag.label}`;
+      }
+
+      function init() {
+        state.context = loadDashboardContext();
+        const savedDashboard = safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY));
+        setSource(savedDashboard ? "live" : "sample");
+        state.logs = loadLogs();
+        state.session = loadSession();
+        if (!state.session && state.logs.length) {
+          state.session = inferSessionFromLogs(state.logs);
+        }
+        state.selectedTag = quickTags[0].id;
+        renderQuickGrid();
+        renderSession();
+        renderLogs();
+
+        quickGrid.addEventListener("click", (event) => {
+          const button = event.target.closest("[data-tag]");
+          if (!button) return;
+          const tag = quickTags.find((item) => item.id === button.dataset.tag);
+          if (!tag) return;
+          addLog(tag);
+        });
+
+        startShiftBtn.addEventListener("click", () => {
+          startShift();
+          renderLogs();
+        });
+
+        endShiftBtn.addEventListener("click", () => {
+          endShift();
+          renderLogs();
+        });
+
+        breakShiftBtn.addEventListener("click", () => {
+          toggleBreak();
+          renderLogs();
+        });
+
+        loadLiveDataBtn.addEventListener("click", () => {
+          const savedDashboard = safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY));
+          state.context = savedDashboard ? loadDashboardContext() : sampleContext;
+          setSource(savedDashboard ? "live" : "sample");
+          if (state.session) {
+            state.session = {
+              ...state.session,
+              date: state.context.date || state.session.date,
+              platform: state.context.platform || state.session.platform,
+              zone: state.context.zone || state.session.zone,
+            };
+            persistSession();
+            renderSession();
+          }
+          renderLogs();
+        });
+
+        saveLogBtn.addEventListener("click", () => {
+          const tag = getSelectedTag();
+          addLog(tag);
+        });
+
+        copyLogBtn.addEventListener("click", async () => {
+          const latest = state.logs[0] || makeLog(getSelectedTag());
+          await navigator.clipboard.writeText(JSON.stringify(latest, null, 2));
+        });
+
+        window.setInterval(() => {
+          if (hasActiveSession()) renderSession();
+          if (hasPausedSession()) renderSession();
+        }, 1000);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

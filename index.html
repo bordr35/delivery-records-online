@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Food Gig Dashboard</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">FG</div>
+          <div>
+            <div class="brand-title">Food Gig Dashboard</div>
+            <div class="brand-subtitle">private control panel</div>
+          </div>
+        </div>
+        <nav class="nav" id="nav">
+          <button class="nav-item active" data-view="home">Home</button>
+          <button class="nav-item" data-view="evidence">Evidence Inbox</button>
+          <button class="nav-item" data-view="intake">Photo Intake</button>
+          <button class="nav-item" data-view="orders">Order Records</button>
+          <button class="nav-item" data-view="shifts">Shift Reviews</button>
+          <button class="nav-item" data-view="weekly">Weekly Reviews</button>
+          <button class="nav-item" data-view="merchants">Merchant Log</button>
+          <button class="nav-item" data-view="zones">Zone Log</button>
+          <button class="nav-item" data-view="cases">Order Packets</button>
+          <button class="nav-item" data-view="settings">Settings</button>
+        </nav>
+        <div class="sidebar-footer">
+          <div class="status-dot"></div>
+          <span>Static-hosting ready</span>
+        </div>
+      </aside>
+
+      <main class="content">
+        <header class="topbar">
+          <div>
+            <h1 id="view-title">Home Dashboard</h1>
+            <p id="view-description">Today, this is your working control panel for delivery performance and evidence.</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="ghost-button" id="refresh-btn">Refresh</button>
+            <a class="primary-button" href="./photo-intake.html" style="text-decoration:none;display:inline-flex;align-items:center">Add Photo</a>
+            <a class="ghost-button" href="./batch-import.html" style="text-decoration:none;display:inline-flex;align-items:center">Batch Import</a>
+            <a class="ghost-button" href="./quick-log.html" style="text-decoration:none;display:inline-flex;align-items:center">Quick Log</a>
+            <a class="primary-button" href="./delivery-records.html" style="text-decoration:none;display:inline-flex;align-items:center">Delivery Records</a>
+            <a class="ghost-button" href="./shift-packet.html" style="text-decoration:none;display:inline-flex;align-items:center">Shift Packet</a>
+            <a class="ghost-button" href="./evidence-packet.html" style="text-decoration:none;display:inline-flex;align-items:center">Evidence Packet</a>
+            <a class="ghost-button" href="./chatgpt-workflow.html" style="text-decoration:none;display:inline-flex;align-items:center">ChatGPT Workflow</a>
+          </div>
+        </header>
+
+        <section id="home-view" class="view active">
+          <section class="tiles" id="tiles"></section>
+          <section class="panel-grid">
+            <article class="panel wide">
+              <div class="panel-header">
+                <h2>Latest Shift</h2>
+                <span>Most recent summary</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Platform</th>
+                      <th>Hours</th>
+                      <th>Gross</th>
+                      <th>$/Hr</th>
+                      <th>$/Mi</th>
+                      <th>Issues</th>
+                    </tr>
+                  </thead>
+                  <tbody id="latest-shift-row"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-header">
+                <h2>Friction Snapshot</h2>
+                <span>What slowed the work</span>
+              </div>
+              <ul class="list" id="friction-list"></ul>
+            </article>
+          </section>
+        </section>
+
+        <section id="evidence-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Evidence Inbox</h2>
+              <div class="panel-actions">
+                <span>Recent screenshots and photos</span>
+                <span class="count-chip" id="evidence-count">0 of 0 shown</span>
+                <div class="evidence-type-chips" id="evidence-type-chips"></div>
+                <label class="evidence-filter">
+                  <span>Filter</span>
+                  <select id="evidence-filter">
+                    <option value="all">All evidence</option>
+                    <option value="notes">Has notes</option>
+                    <option value="cases">Has case</option>
+                    <option value="both">Notes + case</option>
+                    <option value="plain">No notes or case</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>File</th>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Linked Order</th>
+                    <th>Linked Case</th>
+                    <th>Confidence</th>
+                    <th>Notes</th>
+                    <th>Folder</th>
+                  </tr>
+                </thead>
+                <tbody id="evidence-table"></tbody>
+              </table>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-header">
+              <h2>File Browser</h2>
+              <div class="panel-actions">
+                <label class="browser-search">
+                  <input id="browser-search" type="search" placeholder="Search files" />
+                </label>
+                <button class="ghost-button" id="browse-folder-btn" type="button">Browse Folder</button>
+                <button class="ghost-button" id="clear-browser-btn" type="button">Clear Browser</button>
+              </div>
+            </div>
+            <p class="browser-path" id="browser-root-label">No folder selected</p>
+            <div class="browser-dropzone" id="browser-dropzone">
+              <strong>Drop files or a folder here</strong>
+              <span>You can also use Browse Folder.</span>
+            </div>
+            <input type="file" id="folder-input" webkitdirectory directory multiple hidden />
+            <div class="browser-layout">
+              <div class="browser-tree" id="browser-tree">
+                <div class="empty-state">
+                  <strong>No folder loaded yet.</strong>
+                  <span>Choose a folder to browse its files.</span>
+                </div>
+              </div>
+              <div class="browser-preview" id="browser-preview">
+                <div class="empty-state">
+                  <strong>No file selected.</strong>
+                  <span>Select a file from the browser tree to preview it here.</span>
+                </div>
+              </div>
+            </div>
+          </article>
+          <article class="panel evidence-detail-panel" id="evidence-detail">
+            <div class="panel-header">
+              <div>
+                <h2 id="evidence-detail-title">Evidence Detail</h2>
+                <span id="evidence-detail-meta">Select a file to inspect and relink it.</span>
+              </div>
+              <div id="evidence-detail-status"></div>
+            </div>
+            <div class="evidence-detail-layout">
+              <div class="evidence-detail-preview" id="evidence-detail-preview">
+                <div class="empty-state">
+                  <strong>No evidence selected.</strong>
+                  <span>Choose a row from the inbox or browser to inspect it here.</span>
+                </div>
+              </div>
+              <div class="evidence-detail-fields">
+                <label class="field-group">
+                  <span>Linked Order</span>
+                  <select id="evidence-order-select"></select>
+                </label>
+                <label class="field-group">
+                  <span>Linked Case</span>
+                  <select id="evidence-case-select"></select>
+                </label>
+                <label class="field-group">
+                  <span>Notes</span>
+                  <textarea id="evidence-notes" rows="4" placeholder="Short context, issue details, or review notes"></textarea>
+                </label>
+                <label class="field-group">
+                  <span>OCR Intake</span>
+                  <textarea id="evidence-ocr-text" rows="7" placeholder="Auto-extracted text from the selected screenshot."></textarea>
+                </label>
+                <div class="field-note">
+                  <strong>OCR Status</strong>
+                  <p id="evidence-ocr-status">No OCR text yet.</p>
+                </div>
+                <div class="ocr-fields" id="evidence-ocr-fields"></div>
+                <div class="field-note">
+                  <strong>Selected Path</strong>
+                  <p id="evidence-selected-path">No file selected.</p>
+                  <button class="ghost-button" id="evidence-copy-selected-path" type="button">Copy Path</button>
+                </div>
+                <div class="field-note" id="evidence-manual-note">Auto-link is active.</div>
+                <div class="detail-reason">
+                  <strong>Match Reason</strong>
+                  <p id="evidence-detail-reason">No link reason available.</p>
+                </div>
+                <div class="detail-actions">
+                  <button class="ghost-button" id="evidence-detail-clear" type="button">Clear Link</button>
+                  <button class="ghost-button" id="evidence-detail-auto" type="button">Re-run Auto-Link</button>
+                  <button class="ghost-button" id="evidence-detail-create-case" type="button">Create Case</button>
+                  <button class="ghost-button" id="evidence-detail-copy-name" type="button">Copy Name</button>
+                  <button class="ghost-button" id="evidence-detail-copy-path" type="button">Copy Path</button>
+                  <button class="ghost-button" id="evidence-detail-export-case" type="button">Export Summary</button>
+                  <button class="primary-button" id="evidence-detail-save" type="button">Save Link</button>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section id="intake-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Photo Intake</h2>
+              <span>Quick shift-time capture</span>
+            </div>
+            <div class="table-wrap">
+              <p style="color:var(--muted); margin:0 0 12px;">
+                Use this page for the live photo intake flow. For end-of-night batches, use Batch Import. If you want the real end-of-shift workflow, use Shift Packet instead.
+              </p>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                <a class="primary-button" href="./photo-intake.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Intake</a>
+                <a class="ghost-button" href="./batch-import.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Batch Import</a>
+                <a class="ghost-button" href="./quick-log.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Quick Log</a>
+                <a class="primary-button" href="./delivery-records.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Delivery Records</a>
+                <a class="ghost-button" href="./shift-packet.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Shift Packet</a>
+                <a class="ghost-button" href="./evidence-packet.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Evidence Packet</a>
+                <a class="ghost-button" href="./chatgpt-workflow.html" style="text-decoration:none;display:inline-flex;align-items:center">Open ChatGPT Workflow</a>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section id="orders-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Order Records</h2>
+              <span>One row per completed order</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Merchant</th>
+                    <th>Gross</th>
+                    <th>Bonus</th>
+                    <th>Miles</th>
+                    <th>Minutes</th>
+                    <th>Issue</th>
+                  </tr>
+                </thead>
+                <tbody id="order-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="shifts-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Shift Reviews</h2>
+              <span>Daily performance rollup</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Zone</th>
+                    <th>Hours</th>
+                    <th>Gross</th>
+                    <th>Bonus</th>
+                    <th>$/Hr</th>
+                    <th>$/Mi</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="shift-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="weekly-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Weekly Reviews</h2>
+              <span>Trend view</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Week</th>
+                    <th>Gross</th>
+                    <th>Bonus</th>
+                    <th>Hours</th>
+                    <th>$/Hr</th>
+                    <th>$/Mi</th>
+                    <th>Issues</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="weekly-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="merchants-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Merchant Log</h2>
+              <span>Fast vs slow merchants</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Merchant</th>
+                    <th>Orders</th>
+                    <th>Problem Orders</th>
+                    <th>Avg Wait</th>
+                    <th>Best Zone</th>
+                    <th>Worst Zone</th>
+                  </tr>
+                </thead>
+                <tbody id="merchant-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="zones-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Zone Log</h2>
+              <span>Profitability by area</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Zone</th>
+                    <th>Orders</th>
+                    <th>Gross</th>
+                    <th>$/Hr</th>
+                    <th>$/Mi</th>
+                    <th>Wait</th>
+                    <th>Issues</th>
+                  </tr>
+                </thead>
+                <tbody id="zone-table"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="cases-view" class="view">
+          <section class="case-layout">
+            <article class="panel">
+              <div class="panel-header">
+                <h2>Order Packets</h2>
+                <div class="panel-actions">
+                  <span>Issues worth preserving</span>
+                  <label class="evidence-filter">
+                    <span>Filter</span>
+                    <select id="case-filter">
+                      <option value="all">All cases</option>
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                    </select>
+                  </label>
+                  <span class="count-chip" id="case-status-count">0 open / 0 closed</span>
+                  <button class="ghost-button" id="case-export-packet-btn" type="button">Export Packet</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Case ID</th>
+                      <th>Date</th>
+                      <th>Merchant</th>
+                      <th>Issue Type</th>
+                      <th>Status</th>
+                      <th>Outcome</th>
+                    </tr>
+                  </thead>
+                  <tbody id="case-table"></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="panel case-summary-panel">
+              <div class="panel-header">
+                <h2>Case Summary</h2>
+                <div class="panel-actions">
+                  <span>Selected evidence context</span>
+                  <span class="count-chip" id="case-evidence-count">0 evidence</span>
+                  <span class="count-chip" id="case-path-status">Path missing</span>
+                  <button class="ghost-button" id="case-summary-copy-path-btn" type="button">Copy Path</button>
+                  <button class="ghost-button" id="case-summary-copy-btn" type="button">Copy Packet</button>
+                </div>
+              </div>
+              <div id="case-summary" class="case-summary">
+                <div class="empty-state">
+                  <strong>No case selected.</strong>
+                  <span>Select evidence with a linked case to see a summary here.</span>
+                </div>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section id="settings-view" class="view">
+          <article class="panel">
+            <div class="panel-header">
+              <h2>Settings</h2>
+              <span>Storage and privacy</span>
+            </div>
+            <div class="settings-grid">
+              <div class="setting-card">
+                <h3>Storage</h3>
+                <p>Active folder: iCloud Drive / FoodGig</p>
+                <p>Archive folder: weekly-archives</p>
+              </div>
+              <div class="setting-card">
+                <h3>Privacy</h3>
+                <p>Private by default</p>
+                <p>Evidence stays restricted</p>
+              </div>
+              <div class="setting-card">
+                <h3>Build Mode</h3>
+                <p>MVP scaffold using local data first</p>
+                <p>Future upgrade path: map and live geo</p>
+              </div>
+              <div class="setting-card setting-card-wide">
+                <h3>CSV Import</h3>
+                <p>Load your existing template files into the prototype.</p>
+                <p class="setting-note">Imported data is saved locally in this browser.</p>
+                <label class="file-input">
+                  <span>Order records</span>
+                  <input type="file" id="orders-file" accept=".csv,text/csv" />
+                </label>
+                <label class="file-input">
+                  <span>Daily shifts</span>
+                  <input type="file" id="shifts-file" accept=".csv,text/csv" />
+                </label>
+                <label class="file-input">
+                  <span>Weekly summaries</span>
+                  <input type="file" id="weekly-file" accept=".csv,text/csv" />
+                </label>
+                <label class="file-input">
+                  <span>Merchant log</span>
+                  <input type="file" id="merchants-file" accept=".csv,text/csv" />
+                </label>
+                <label class="file-input">
+                  <span>Zone log</span>
+                  <input type="file" id="zones-file" accept=".csv,text/csv" />
+                </label>
+                <label class="file-input">
+                  <span>Case files</span>
+                  <input type="file" id="cases-file" accept=".csv,text/csv" />
+                </label>
+                <button class="ghost-button" id="clear-storage-btn" type="button">Clear Local Data</button>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "Food Gig Delivery Records",
+  "short_name": "Delivery Records",
+  "start_url": "./delivery-records.html",
+  "display": "standalone",
+  "background_color": "#0b0d0b",
+  "theme_color": "#0b0d0b",
+  "description": "Online-ready delivery records, proof notes, mileage, expenses, and weekly reviews.",
+  "icons": []
+}

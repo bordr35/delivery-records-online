@@ -1,0 +1,720 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Photo Intake</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: rgba(17, 24, 39, 0.92);
+        --panel-2: rgba(28, 36, 52, 0.92);
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #f3f7ff;
+        --muted: #a7b1c2;
+        --accent: #ff8a3d;
+        --accent-2: #61d4a8;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+        --radius: 20px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 138, 61, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(97, 212, 168, 0.14), transparent 28%),
+          linear-gradient(180deg, #111827 0%, #0b0f15 100%);
+      }
+
+      body { padding: 24px; }
+
+      .shell {
+        max-width: 1320px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero, .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius);
+      }
+
+      .hero {
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+
+      h1, h2, p { margin: 0; }
+
+      h1 { font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.02; margin-bottom: 10px; }
+
+      .hero-copy, .panel-header p, .hint {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .toolbar { display: grid; gap: 10px; }
+
+      .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .field input,
+      .field textarea {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        padding: 12px 14px;
+        font: inherit;
+        outline: none;
+      }
+
+      .field input:focus,
+      .field textarea:focus {
+        border-color: rgba(255, 138, 61, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 138, 61, 0.12);
+      }
+
+      .button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .button.primary {
+        color: #171a21;
+        background: linear-gradient(135deg, var(--accent), #ffbf6b);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.08fr 0.92fr;
+        gap: 18px;
+      }
+
+      .stack { display: grid; gap: 18px; }
+
+      .panel { padding: 18px; }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 14px;
+      }
+
+      .panel-header span,
+      .status {
+        color: var(--muted);
+      }
+
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .source-chip.live {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+
+      .source-chip.sample {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+
+      .dropzone {
+        border: 1px dashed rgba(255, 255, 255, 0.16);
+        border-radius: 18px;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        display: grid;
+        gap: 10px;
+        place-items: center;
+        text-align: center;
+        min-height: 180px;
+      }
+
+      .dropzone.dragover {
+        border-color: rgba(255, 138, 61, 0.65);
+        background: rgba(255, 138, 61, 0.14);
+      }
+
+      .preview {
+        width: 100%;
+        max-height: 360px;
+        object-fit: contain;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .label {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.84rem;
+        margin-bottom: 8px;
+      }
+
+      pre {
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: #d8e3f5;
+        line-height: 1.5;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+
+      .response-box.empty {
+        color: var(--muted);
+      }
+
+      .badge-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .badge {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+      }
+
+      .badge.good {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+
+      .badge.warn {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+
+      .badge.bad {
+        color: #ffc1cb;
+        background: rgba(255, 113, 138, 0.16);
+      }
+
+      @media (max-width: 980px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 640px) {
+        body { padding: 14px; }
+        .hero, .panel { padding: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div>
+          <div class="source-chip sample" id="data-source-chip">Using sample dashboard data</div>
+          <h1>Photo Intake</h1>
+          <p class="hero-copy">
+            Upload a delivery photo, add a short note, and send it to Hermes while the shift is in motion.
+            This page is built for the during-shift version of the workflow. If you want the no-API ChatGPT-only
+            path, use the ChatGPT Workflow page instead.
+          </p>
+        </div>
+        <div class="toolbar">
+          <div class="field">
+            <label for="endpoint-input">Hermes endpoint</label>
+            <input id="endpoint-input" type="url" placeholder="/api/hermes/photo" />
+          </div>
+          <div class="toolbar-row">
+            <button class="button" id="load-live-data" type="button">Use Dashboard Data</button>
+            <button class="button primary" id="send-btn" type="button">Send Photo</button>
+            <button class="button" id="save-btn" type="button">Save to Evidence</button>
+            <a class="button" href="./batch-import.html">Open Batch Import</a>
+            <a class="button" href="./index.html">Open Dashboard</a>
+            <a class="button" href="./quick-log.html">Open Quick Log</a>
+            <a class="button" href="./shift-packet.html">Open Shift Packet</a>
+            <a class="button" href="./chatgpt-workflow.html">Open ChatGPT Workflow</a>
+            <a class="button" href="./hermes-harness.html">Open Harness</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>1. Pick a photo</h2>
+                <p>Drop a screenshot, proof photo, or delivery image here.</p>
+              </div>
+              <span class="status" id="file-status">No photo selected</span>
+            </div>
+            <label class="dropzone" id="dropzone" for="photo-input">
+              <strong>Click or drop a photo here</strong>
+              <span class="hint">PNG, JPG, or JPEG</span>
+              <span class="hint" id="dropzone-hint">A preview will appear after selection.</span>
+            </label>
+            <input id="photo-input" type="file" accept="image/png,image/jpeg,image/jpg" hidden />
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>2. Add context</h2>
+                <p>Keep it short. Hermes can use the note plus the image to draft the next step.</p>
+              </div>
+            </div>
+          <div class="field">
+            <label for="note-input">Shift note</label>
+            <textarea id="note-input" rows="4" placeholder="Example: Slow Wingstop pickup, customer waited at gate, keep evidence for case."></textarea>
+          </div>
+            <div class="field" style="margin-top: 14px;">
+              <label for="order-input">Order / customer</label>
+              <input id="order-input" type="text" placeholder="Example: dd-417-01 or customer name" />
+            </div>
+            <div class="label" style="margin-top: 14px;">Suggested Tags</div>
+            <div class="badge-row" id="live-badges"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Photo Preview</h2>
+                <p>See the image before you send it.</p>
+              </div>
+            </div>
+            <div id="preview-wrap" class="dropzone" style="min-height: 220px;">
+              <strong>No preview yet.</strong>
+              <span class="hint">Select a photo to continue.</span>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Payload</h2>
+                <p>This is what the page sends to Hermes.</p>
+              </div>
+            </div>
+            <div class="label">JSON</div>
+            <pre id="payload-output" class="response-box empty">Select a photo to build the payload.</pre>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Hermes Response</h2>
+                <p>The mock server will return a structured analysis you can use during testing.</p>
+              </div>
+            </div>
+            <div class="label">Output</div>
+            <pre id="response-output" class="response-box empty">No photo has been sent yet.</pre>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const DASHBOARD_STORAGE_KEY = "food-gig-dashboard-state-v1";
+      const ENDPOINT_STORAGE_KEY = "food-gig-photo-endpoint-v1";
+      const DEFAULT_ENDPOINT = "/api/hermes/photo";
+
+      const sampleContext = {
+        project: "food-gig-evidence",
+        date: "2026-04-17",
+        platform: "DoorDash",
+        zone: "west-side",
+        latestShift: {
+          hours: 3.75,
+          gross: 84.5,
+          bonus: 0,
+          perHour: 22.53,
+          perMile: 1.75,
+          issues: 1,
+        },
+        merchants: [
+          { name: "Wingstop", orders: 9, problemOrders: 4, waitMinutes: 11.5 },
+          { name: "Chick-fil-A", orders: 18, problemOrders: 1, waitMinutes: 4.2 },
+          { name: "Chipotle", orders: 11, problemOrders: 2, waitMinutes: 6.8 },
+        ],
+        evidence: [
+          "2026-04-17_doordash_wingstop_offer.png",
+          "2026-04-17_doordash_wingstop_dropoff-proof.jpg",
+        ],
+        cases: [{ id: "case-2026-04-17-01", issue: "customer-access", status: "open" }],
+      };
+
+      const state = {
+        source: "sample",
+        context: sampleContext,
+        file: null,
+        fileUrl: "",
+        fileDataUrl: "",
+        previewUrl: "",
+      };
+
+      const endpointInput = document.getElementById("endpoint-input");
+      const loadLiveDataBtn = document.getElementById("load-live-data");
+      const sendBtn = document.getElementById("send-btn");
+      const saveBtn = document.getElementById("save-btn");
+      const photoInput = document.getElementById("photo-input");
+      const dropzone = document.getElementById("dropzone");
+      const dropzoneHint = document.getElementById("dropzone-hint");
+      const fileStatus = document.getElementById("file-status");
+      const previewWrap = document.getElementById("preview-wrap");
+      const payloadOutput = document.getElementById("payload-output");
+      const responseOutput = document.getElementById("response-output");
+      const noteInput = document.getElementById("note-input");
+      const orderInput = document.getElementById("order-input");
+      const dataSourceChip = document.getElementById("data-source-chip");
+      const liveBadges = document.getElementById("live-badges");
+
+      function safeStorageGet(key) {
+        try {
+          return window.localStorage.getItem(key);
+        } catch {
+          return null;
+        }
+      }
+
+      function safeStorageSet(key, value) {
+        try {
+          window.localStorage.setItem(key, value);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function safeParseJson(raw) {
+        try {
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function toNumber(value) {
+        const numeric = Number(String(value).replace(/[^0-9.-]+/g, ""));
+        return Number.isFinite(numeric) ? numeric : 0;
+      }
+
+      function createContextFromDashboardState(saved) {
+        const orders = Array.isArray(saved?.orders) ? saved.orders : [];
+        const shifts = Array.isArray(saved?.shifts) ? saved.shifts : [];
+        const weekly = Array.isArray(saved?.weekly) ? saved.weekly : [];
+        const merchants = Array.isArray(saved?.merchants) ? saved.merchants : [];
+        const evidence = Array.isArray(saved?.evidence) ? saved.evidence : [];
+        const cases = Array.isArray(saved?.cases) ? saved.cases : [];
+        const latestShift = shifts[0] || {};
+        const weeklyRow = weekly[0] || {};
+        const totalGross = shifts.reduce((sum, shift) => sum + toNumber(shift.gross), 0);
+        const totalHours = shifts.reduce((sum, shift) => sum + toNumber(shift.hours), 0);
+        const totalMiles = orders.reduce((sum, order) => sum + toNumber(order.miles), 0);
+        const issueCount = orders.reduce((sum, order) => sum + (String(order.issue).toLowerCase() === "yes" ? 1 : 0), 0);
+        const weekGross = totalGross || toNumber(weeklyRow.gross) || toNumber(latestShift.gross);
+        const weekHours = totalHours || toNumber(weeklyRow.hours) || toNumber(latestShift.hours);
+
+        return {
+          project: "food-gig-evidence",
+          date: latestShift.date || "unknown",
+          platform: latestShift.platform || orders[0]?.platform || "DoorDash",
+          zone: latestShift.zone || "unknown",
+          latestShift: {
+            hours: totalHours ? Number(totalHours.toFixed(2)) : toNumber(latestShift.hours),
+            gross: totalGross || toNumber(latestShift.gross),
+            bonus: toNumber(latestShift.bonus),
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : toNumber(latestShift.perHour),
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : toNumber(latestShift.perMile),
+            issues: issueCount || toNumber(latestShift.issues),
+          },
+          merchants: merchants.map((merchant) => ({
+            name: merchant.merchant || merchant.name || "Unknown merchant",
+            orders: toNumber(merchant.orders),
+            problemOrders: toNumber(merchant.problemOrders),
+            waitMinutes: toNumber(merchant.wait || merchant.waitMinutes),
+          })),
+          evidence: evidence.map((entry) => entry.file || entry.filename || entry.path || String(entry)),
+          weekly: {
+            gross: weekGross,
+            hours: weekHours,
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : 0,
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : 0,
+            issues: toNumber(weeklyRow.issues),
+          },
+          cases: cases.map((entry) => ({
+            id: entry.id || "case-unknown",
+            issue: entry.issue || "unknown",
+            status: entry.status || "unknown",
+          })),
+        };
+      }
+
+      function setDataSource(source) {
+        state.source = source;
+        const isLive = source === "live";
+        dataSourceChip.textContent = isLive ? "Using live dashboard data" : "Using sample dashboard data";
+        dataSourceChip.classList.toggle("live", isLive);
+        dataSourceChip.classList.toggle("sample", !isLive);
+      }
+
+      function renderBadges() {
+        const tags = inferTags();
+        liveBadges.innerHTML = tags.length
+          ? tags
+              .map((tag) => {
+                const tone = tag === "proof" ? "good" : tag === "merchant-delay" || tag === "customer-access" ? "warn" : "bad";
+                return `<span class="badge ${tone}">${tag}</span>`;
+              })
+              .join("")
+          : `<span class="badge">No tags yet</span>`;
+      }
+
+      function inferTags() {
+        const blob = `${state.file?.name || ""} ${noteInput.value || ""}`.toLowerCase();
+        const tags = new Set();
+
+        if (/wingstop|wait|delay|slow/.test(blob)) tags.add("merchant-delay");
+        if (/gate|customer|access|apartment|door/.test(blob)) tags.add("customer-access");
+        if (/proof|dropoff|delivered|handed/.test(blob)) tags.add("proof");
+        if (/bonus|challenge|reward/.test(blob)) tags.add("bonus");
+        if (!tags.size) tags.add("general");
+
+        return [...tags];
+      }
+
+      function renderPreview() {
+        if (!state.previewUrl) {
+          previewWrap.innerHTML = `
+            <strong>No preview yet.</strong>
+            <span class="hint">Select a photo to continue.</span>
+          `;
+          return;
+        }
+
+        previewWrap.innerHTML = `<img class="preview" src="${state.previewUrl}" alt="Selected delivery photo preview" />`;
+      }
+
+      function renderPayload() {
+        const payload = {
+          context: state.context,
+          note: noteInput.value.trim(),
+          order: orderInput.value.trim(),
+          tags: inferTags(),
+          image: state.file
+            ? {
+                name: state.file.name,
+                type: state.file.type,
+                size: state.file.size,
+              }
+            : null,
+        };
+        payloadOutput.textContent = JSON.stringify(payload, null, 2);
+      }
+
+      function setResponse(text, isEmpty = false) {
+        responseOutput.textContent = text;
+        responseOutput.classList.toggle("empty", isEmpty);
+      }
+
+      function buildEvidenceEntry() {
+        const tags = inferTags();
+        const primaryTag = tags[0] || "general";
+        const today = state.context.date || new Date().toISOString().slice(0, 10);
+        const type =
+          primaryTag === "proof" ? "dropoff-proof" :
+          primaryTag === "bonus" ? "final-payout" :
+          primaryTag === "merchant-delay" ? "offer" :
+          primaryTag === "customer-access" ? "dropoff-proof" :
+          "offer";
+
+        return {
+          file: state.file?.name || `photo-${Date.now()}.jpg`,
+          type,
+          platform: state.context.platform || "DoorDash",
+          date: today,
+          order: orderInput.value.trim() || "-",
+          caseId: "-",
+          folder: "photo-intake",
+          notes: noteInput.value.trim(),
+          confidence: "manual",
+          confidenceReason: `saved from intake (${tags.join(", ")})`,
+        };
+      }
+
+      function saveToDashboardEvidence() {
+        const raw = safeStorageGet(DASHBOARD_STORAGE_KEY);
+        const saved = safeParseJson(raw) || {};
+        const evidence = Array.isArray(saved.evidence) ? saved.evidence : [];
+        const entry = buildEvidenceEntry();
+        const nextEvidence = evidence.filter((item) => item.file !== entry.file).concat(entry);
+        saved.evidence = nextEvidence;
+        if (!saved.selectedEvidenceFile) {
+          saved.selectedEvidenceFile = entry.file;
+        }
+        safeStorageSet(DASHBOARD_STORAGE_KEY, JSON.stringify(saved));
+        setResponse(`Saved to dashboard evidence:\n${entry.file}\n\nRefresh the dashboard to see it in the Evidence Inbox.`);
+      }
+
+      async function loadFile(file) {
+        if (!file) return;
+        state.file = file;
+        state.fileUrl = URL.createObjectURL(file);
+        state.previewUrl = state.fileUrl;
+        fileStatus.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+        dropzoneHint.textContent = "Photo loaded. Add a note, then send it.";
+        renderPreview();
+        renderPayload();
+
+        const reader = new FileReader();
+        reader.onload = () => {
+          state.fileDataUrl = String(reader.result || "");
+        };
+        reader.readAsDataURL(file);
+      }
+
+      function loadDashboardData() {
+        const saved = safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY));
+        state.context = saved ? createContextFromDashboardState(saved) : sampleContext;
+        setDataSource(saved ? "live" : "sample");
+        renderBadges();
+        renderPayload();
+        return Boolean(saved);
+      }
+
+      async function sendPhoto() {
+        if (!state.file) {
+          setResponse("Pick a photo first.", true);
+          return;
+        }
+
+        const endpoint = endpointInput.value.trim() || DEFAULT_ENDPOINT;
+        safeStorageSet(ENDPOINT_STORAGE_KEY, endpoint);
+
+        const payload = {
+          context: state.context,
+          note: noteInput.value.trim(),
+          order: orderInput.value.trim(),
+          image: {
+            name: state.file.name,
+            type: state.file.type,
+            size: state.file.size,
+            dataUrl: state.fileDataUrl,
+          },
+        };
+
+        setResponse("Sending photo...", true);
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const contentType = response.headers.get("content-type") || "";
+          const body = contentType.includes("application/json")
+            ? JSON.stringify(await response.json(), null, 2)
+            : await response.text();
+
+          setResponse(`Status: ${response.status} ${response.statusText}\n\n${body}`);
+        } catch (error) {
+          setResponse(`Request failed:\n${error.message}`);
+        }
+      }
+
+      photoInput.addEventListener("change", (event) => {
+        loadFile(event.target.files?.[0]);
+      });
+
+      dropzone.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        dropzone.classList.add("dragover");
+      });
+
+      dropzone.addEventListener("dragleave", () => {
+        dropzone.classList.remove("dragover");
+      });
+
+      dropzone.addEventListener("drop", (event) => {
+        event.preventDefault();
+        dropzone.classList.remove("dragover");
+        loadFile(event.dataTransfer.files?.[0]);
+      });
+
+      loadLiveDataBtn.addEventListener("click", () => {
+        const loaded = loadDashboardData();
+        setResponse(loaded ? "Dashboard data loaded." : "No dashboard state found. Using sample data.", true);
+      });
+
+      sendBtn.addEventListener("click", sendPhoto);
+      saveBtn.addEventListener("click", saveToDashboardEvidence);
+      noteInput.addEventListener("input", renderPayload);
+      noteInput.addEventListener("input", renderBadges);
+
+      const savedEndpoint = safeStorageGet(ENDPOINT_STORAGE_KEY);
+      endpointInput.value = savedEndpoint || DEFAULT_ENDPOINT;
+      endpointInput.addEventListener("change", () => {
+        safeStorageSet(ENDPOINT_STORAGE_KEY, endpointInput.value.trim());
+      });
+
+      loadDashboardData();
+      renderPreview();
+      renderPayload();
+      renderBadges();
+      setResponse("No photo has been sent yet.", true);
+    </script>
+  </body>
+</html>

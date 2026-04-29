@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hermes Test Harness</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: rgba(17, 24, 39, 0.92);
+        --panel-2: rgba(28, 36, 52, 0.92);
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #f3f7ff;
+        --muted: #a7b1c2;
+        --accent: #ff8a3d;
+        --accent-2: #61d4a8;
+        --good: #61d4a8;
+        --warn: #ffbc6b;
+        --bad: #ff718a;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+        --radius: 20px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background:
+          radial-gradient(circle at top left, rgba(255, 138, 61, 0.18), transparent 28%),
+          radial-gradient(circle at top right, rgba(97, 212, 168, 0.16), transparent 28%),
+          linear-gradient(180deg, #111827 0%, #0b0f15 100%);
+        color: var(--text);
+      }
+
+      body {
+        padding: 24px;
+      }
+
+      .shell {
+        max-width: 1360px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius);
+      }
+
+      .hero {
+        padding: 24px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 18px;
+        align-items: end;
+      }
+
+      .eyebrow {
+        color: var(--accent-2);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 1.02;
+        margin-bottom: 10px;
+      }
+
+      .hero-copy {
+        max-width: 760px;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .toolbar {
+        display: grid;
+        gap: 12px;
+      }
+
+      .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .field input {
+        min-width: min(520px, 100%);
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        outline: none;
+      }
+
+      .field input:focus {
+        border-color: rgba(255, 138, 61, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 138, 61, 0.12);
+      }
+
+      .button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .button.primary {
+        color: #171a21;
+        background: linear-gradient(135deg, var(--accent), #ffbf6b);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 18px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 18px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+
+      .guide {
+        display: grid;
+        gap: 12px;
+      }
+
+      .guide-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .step-card {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+
+      .step-card strong {
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .step-card p {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .panel-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 14px;
+      }
+
+      .panel-header p {
+        color: var(--muted);
+        margin-top: 6px;
+        line-height: 1.5;
+      }
+
+      .pill-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .pill {
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .pill.good {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+
+      .pill.warn {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+
+      .pill.bad {
+        color: #ffc1cb;
+        background: rgba(255, 113, 138, 0.16);
+      }
+
+      .scenario-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .scenario {
+        width: 100%;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px;
+        cursor: pointer;
+      }
+
+      .scenario.active {
+        border-color: rgba(255, 138, 61, 0.45);
+        background: rgba(255, 138, 61, 0.12);
+      }
+
+      .scenario small {
+        display: block;
+        color: var(--muted);
+        margin-top: 6px;
+        line-height: 1.45;
+      }
+
+      .scenario-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 700;
+      }
+
+      .label {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      pre {
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        overflow: auto;
+        color: #d8e3f5;
+        line-height: 1.5;
+      }
+
+      textarea {
+        width: 100%;
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: #d8e3f5;
+        line-height: 1.5;
+        font: inherit;
+        resize: vertical;
+        outline: none;
+      }
+
+      textarea:focus {
+        border-color: rgba(255, 138, 61, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 138, 61, 0.12);
+      }
+
+      .split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+
+      .metric strong {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.15rem;
+      }
+
+      .copy-status {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .source-chip.live {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+
+      .source-chip.sample {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+
+      .response-box {
+        min-height: 180px;
+        white-space: pre-wrap;
+      }
+
+      .response-box.empty {
+        color: var(--muted);
+      }
+
+      .tone {
+        font-weight: 700;
+      }
+
+      .tone.good {
+        color: var(--good);
+      }
+
+      .tone.warn {
+        color: var(--warn);
+      }
+
+      .tone.bad {
+        color: var(--bad);
+      }
+
+      @media (max-width: 980px) {
+        .grid,
+        .split {
+          grid-template-columns: 1fr;
+        }
+
+        .metric-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          padding: 14px;
+        }
+
+        .hero,
+        .panel {
+          padding: 16px;
+        }
+
+        .metric-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div>
+          <div class="eyebrow">Hermes test harness</div>
+          <h1>Gig-work agent sandbox</h1>
+          <p class="hero-copy">
+            This page packages your delivery data into small, repeatable Hermes-style tests so you can
+            compare summaries, friction analysis, case notes, and follow-up actions without touching the
+            dashboard itself.
+          </p>
+        </div>
+        <div class="toolbar">
+          <div class="field">
+            <label for="endpoint-input">Hermes endpoint</label>
+            <input id="endpoint-input" type="url" placeholder="http://localhost:3000/api/hermes" />
+          </div>
+          <div class="toolbar-row hero-actions">
+            <button class="button" id="load-live-data" type="button">Use Dashboard Data</button>
+            <button class="button primary" id="run-selected-test" type="button">Run Test</button>
+            <button class="button" id="copy-full-payload" type="button">Copy Full Payload</button>
+            <button class="button" id="copy-selected-prompt" type="button">Copy Selected Prompt</button>
+            <a class="button" href="./index.html" style="text-decoration:none;display:inline-flex;align-items:center">Open Dashboard</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Current Gig Snapshot</h2>
+            <p>The bundled context mirrors the dashboard data shape, so you can test Hermes on the same kinds of facts the app already tracks.</p>
+          </div>
+          <div style="display:grid; gap:8px; justify-items:end;">
+            <div class="source-chip sample" id="data-source-chip">Using sample data</div>
+            <div class="copy-status" id="copy-status">Ready.</div>
+          </div>
+        </div>
+
+        <div class="metric-grid" id="metrics"></div>
+      </section>
+
+      <section class="panel guide">
+        <div class="panel-header">
+          <div>
+            <h2>How It Works</h2>
+            <p>This is the mental model: pick a scenario, read the prompt, inspect the data payload, then run it against Hermes.</p>
+          </div>
+        </div>
+        <div class="guide-steps">
+          <div class="step-card">
+            <strong>1. Pick a scenario</strong>
+            <p>Each scenario is a small test. One checks summaries, another checks merchant friction, and so on.</p>
+          </div>
+          <div class="step-card">
+            <strong>2. Read the prompt</strong>
+            <p>The prompt is the actual instruction Hermes would receive. That is the behavior you are testing.</p>
+          </div>
+          <div class="step-card">
+            <strong>3. Run or copy</strong>
+            <p>Either send the payload to your endpoint or copy the prompt and paste it into another agent tool.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Test Scenarios</h2>
+                <p>Pick one scenario, copy the prompt, and paste the payload into Hermes or your wrapper.</p>
+              </div>
+            </div>
+            <div class="scenario-list" id="scenario-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Expected Output</h2>
+                <p>These are the fields to look for when Hermes answers the test.</p>
+              </div>
+            </div>
+            <div class="pill-row" id="expected-output"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Selected Prompt</h2>
+                <p id="scenario-summary"></p>
+              </div>
+            </div>
+            <div class="label">Prompt</div>
+            <textarea id="prompt-output" readonly rows="7"></textarea>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Payload</h2>
+                <p>The data block below is what you can hand to Hermes as the structured context.</p>
+              </div>
+            </div>
+            <div class="label">JSON</div>
+            <textarea id="payload-output" readonly rows="14"></textarea>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Hermes Response</h2>
+                <p>Run the selected test against your endpoint and inspect the raw reply here.</p>
+              </div>
+            </div>
+            <div class="label">Output</div>
+            <pre class="response-box empty" id="response-output">No test has run yet.</pre>
+          </section>
+
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const DASHBOARD_STORAGE_KEY = "food-gig-dashboard-state-v1";
+      const ENDPOINT_STORAGE_KEY = "food-gig-hermes-endpoint-v1";
+      const DEFAULT_ENDPOINT = location.protocol === "file:" ? "http://127.0.0.1:8080/api/hermes" : "/api/hermes";
+
+      const sampleContext = {
+        project: "food-gig-evidence",
+        date: "2026-04-17",
+        platform: "DoorDash",
+        zone: "west-side",
+        latestShift: {
+          hours: 3.75,
+          gross: 84.5,
+          bonus: 0,
+          perHour: 22.53,
+          perMile: 1.75,
+          issues: 1,
+        },
+        merchants: [
+          { name: "Wingstop", orders: 9, problemOrders: 4, waitMinutes: 11.5 },
+          { name: "Chick-fil-A", orders: 18, problemOrders: 1, waitMinutes: 4.2 },
+          { name: "Chipotle", orders: 11, problemOrders: 2, waitMinutes: 6.8 },
+        ],
+        evidence: [
+          "2026-04-17_doordash_wingstop_offer.png",
+          "2026-04-17_doordash_wingstop_dropoff-proof.jpg",
+          "2026-04-17_doordash_wingstop_final-payout.png",
+        ],
+        weekly: {
+          gross: 497.3,
+          hours: 23.8,
+          perHour: 20.89,
+          perMile: 1.76,
+          issues: 4,
+        },
+        friction: [
+          "Wingstop wait times slowed the dinner block.",
+          "North-apartment dropoff took longer than the payout justified.",
+          "West-side dinner block had the strongest earnings.",
+        ],
+        cases: [
+          { id: "case-2026-04-17-01", issue: "customer-access", status: "open" },
+          { id: "case-2026-04-15-01", issue: "merchant-delay", status: "closed" },
+        ],
+      };
+
+      const liveState = {
+        source: "sample",
+        context: sampleContext,
+      };
+
+      const scenarios = [
+        {
+          id: "summary_shift",
+          title: "Summarize shift",
+          badge: "baseline",
+          color: "good",
+          summary: "Checks whether Hermes can produce a clean shift summary from the latest work session.",
+          prompt:
+            "Summarize the latest gig shift in 5 bullets. Include earnings, pace, key friction, and one recommendation for the next shift. Keep it concise and grounded only in the provided payload.",
+          expected: ["gross", "hours", "per hour", "friction", "next step"],
+        },
+        {
+          id: "merchant_friction",
+          title: "Rank merchants",
+          badge: "analysis",
+          color: "warn",
+          summary: "Tests whether Hermes can identify which merchant is the biggest drag on the shift.",
+          prompt:
+            "Rank the merchants from best to worst based on wait time and problem orders. Explain why the worst merchant is hurting earnings and suggest one operational change.",
+          expected: ["merchant rank", "reason", "change", "wait time", "problem orders"],
+        },
+        {
+          id: "case_note",
+          title: "Draft case note",
+          badge: "record",
+          color: "bad",
+          summary: "Useful for proving Hermes can turn evidence into a structured note for a case file.",
+          prompt:
+            "Draft a short case note for the open issue. Include the issue type, evidence filenames, date, and a one-sentence outcome statement. Use a neutral tone suitable for record keeping.",
+          expected: ["issue type", "evidence list", "date", "outcome", "neutral tone"],
+        },
+        {
+          id: "weekly_review",
+          title: "Weekly review",
+          badge: "trend",
+          color: "good",
+          summary: "Checks whether Hermes can compare daily performance with the weekly rollup.",
+          prompt:
+            "Compare the latest shift to the weekly snapshot. Call out what improved, what still needs attention, and whether the latest shift looks above or below the week average.",
+          expected: ["compare", "improved", "attention", "above/below average", "trend"],
+        },
+      ];
+
+      const state = {
+        selectedId: scenarios[0].id,
+      };
+
+      const scenarioList = document.getElementById("scenario-list");
+      const promptOutput = document.getElementById("prompt-output");
+      const payloadOutput = document.getElementById("payload-output");
+      const expectedOutput = document.getElementById("expected-output");
+      const scenarioSummary = document.getElementById("scenario-summary");
+      const copyStatus = document.getElementById("copy-status");
+      const dataSourceChip = document.getElementById("data-source-chip");
+      const endpointInput = document.getElementById("endpoint-input");
+      const responseOutput = document.getElementById("response-output");
+
+      function formatCurrency(value) {
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+          maximumFractionDigits: 2,
+        }).format(value);
+      }
+
+      function renderMetrics() {
+        const context = liveState.context;
+        const metrics = [
+          ["Latest gross", formatCurrency(context.latestShift.gross)],
+          ["Hours worked", Number(context.latestShift.hours).toFixed(2)],
+          ["Earnings / hour", formatCurrency(context.latestShift.perHour)],
+          ["Issues flagged", String(context.latestShift.issues)],
+        ];
+
+        document.getElementById("metrics").innerHTML = metrics
+          .map(
+            ([label, value]) => `
+              <div class="metric">
+                <div class="label">${label}</div>
+                <strong>${value}</strong>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function setStatus(message) {
+        copyStatus.textContent = message;
+        window.clearTimeout(setStatus.timer);
+        setStatus.timer = window.setTimeout(() => {
+          copyStatus.textContent = "Ready.";
+        }, 1600);
+      }
+
+      function activeScenario() {
+        return scenarios.find((item) => item.id === state.selectedId) || scenarios[0];
+      }
+
+      function renderScenarioList() {
+        scenarioList.innerHTML = scenarios
+          .map(
+            (scenario) => `
+              <button class="scenario ${scenario.id === state.selectedId ? "active" : ""}" data-id="${scenario.id}" type="button">
+                <div class="scenario-title">
+                  <span>${scenario.title}</span>
+                  <span class="pill ${scenario.color}">${scenario.badge}</span>
+                </div>
+                <small>${scenario.summary}</small>
+              </button>
+            `,
+          )
+          .join("");
+      }
+
+      function renderExpectedFields() {
+        const scenario = activeScenario();
+        expectedOutput.innerHTML = scenario.expected
+          .map((item) => `<span class="pill">${item}</span>`)
+          .join("");
+      }
+
+      function renderSelection() {
+        const scenario = activeScenario();
+        promptOutput.value = scenario.prompt;
+        payloadOutput.value = JSON.stringify(buildPayload(), null, 2);
+        scenarioSummary.textContent = scenario.summary;
+        renderScenarioList();
+        renderExpectedFields();
+        promptOutput.focus();
+        promptOutput.setSelectionRange(0, promptOutput.value.length);
+        promptOutput.scrollIntoView({ behavior: "smooth", block: "center" });
+        setStatus(`${scenario.title} loaded.`);
+      }
+
+      function buildPayload() {
+        const scenario = activeScenario();
+        return {
+          scenario: scenario.id,
+          prompt: scenario.prompt,
+          context: liveState.context,
+        };
+      }
+
+      function safeParseJson(raw) {
+        if (!raw) return null;
+        try {
+          return JSON.parse(raw);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function safeStorageGet(key) {
+        try {
+          return window.localStorage.getItem(key);
+        } catch (error) {
+          return null;
+        }
+      }
+
+      function safeStorageSet(key, value) {
+        try {
+          window.localStorage.setItem(key, value);
+          return true;
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function toMoney(value) {
+        const numeric = Number(String(value).replace(/[^0-9.-]+/g, ""));
+        return Number.isFinite(numeric) ? numeric : 0;
+      }
+
+      function toNumber(value) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : 0;
+      }
+
+      function createContextFromDashboardState(saved) {
+        const orders = Array.isArray(saved?.orders) ? saved.orders : [];
+        const shifts = Array.isArray(saved?.shifts) ? saved.shifts : [];
+        const weekly = Array.isArray(saved?.weekly) ? saved.weekly : [];
+        const merchants = Array.isArray(saved?.merchants) ? saved.merchants : [];
+        const evidence = Array.isArray(saved?.evidence) ? saved.evidence : [];
+        const cases = Array.isArray(saved?.cases) ? saved.cases : [];
+        const latestShift = shifts[0] || {};
+        const weeklyRow = weekly[0] || {};
+
+        const totalGross = shifts.reduce((sum, shift) => sum + toMoney(shift.gross), 0);
+        const totalHours = shifts.reduce((sum, shift) => sum + toNumber(shift.hours), 0);
+        const totalMiles = orders.reduce((sum, order) => sum + toNumber(order.miles), 0);
+        const issueCount = orders.reduce((sum, order) => sum + (String(order.issue).toLowerCase() === "yes" ? 1 : 0), 0);
+        const weekGross = totalGross || toMoney(weeklyRow.gross) || toMoney(latestShift.gross);
+        const weekHours = totalHours || toNumber(weeklyRow.hours) || toNumber(latestShift.hours);
+
+        return {
+          project: "food-gig-evidence",
+          date: latestShift.date || "unknown",
+          platform: latestShift.platform || orders[0]?.platform || "DoorDash",
+          zone: latestShift.zone || "unknown",
+          latestShift: {
+            hours: totalHours ? Number(totalHours.toFixed(2)) : toNumber(latestShift.hours),
+            gross: totalGross || toMoney(latestShift.gross),
+            bonus: toMoney(latestShift.bonus),
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : toMoney(latestShift.perHour),
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : toMoney(latestShift.perMile),
+            issues: issueCount || toNumber(latestShift.issues),
+          },
+          merchants: merchants.map((merchant) => ({
+            name: merchant.merchant || merchant.name || "Unknown merchant",
+            orders: toNumber(merchant.orders),
+            problemOrders: toNumber(merchant.problemOrders),
+            waitMinutes: toNumber(merchant.wait || merchant.waitMinutes),
+          })),
+          evidence: evidence.map((entry) => entry.file || entry.filename || entry.path || String(entry)),
+          weekly: {
+            gross: weekGross,
+            hours: weekHours,
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : toMoney(weeklyRow.perHour),
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : toMoney(weeklyRow.perMile),
+            issues: toNumber(weeklyRow.issues),
+          },
+          friction: Array.isArray(saved?.friction) && saved.friction.length
+            ? saved.friction.map((item) => String(item))
+            : [
+                "Live dashboard data loaded from saved state.",
+                "Use the scenario prompt to focus Hermes on the specific question you want tested.",
+              ],
+          cases: cases.map((entry) => ({
+            id: entry.id || "case-unknown",
+            issue: entry.issue || "unknown",
+            status: entry.status || "unknown",
+          })),
+        };
+      }
+
+      function setDataSource(source) {
+        liveState.source = source;
+        const isLive = source === "live";
+        dataSourceChip.textContent = isLive ? "Using live dashboard data" : "Using sample data";
+        dataSourceChip.classList.toggle("live", isLive);
+        dataSourceChip.classList.toggle("sample", !isLive);
+      }
+
+      function loadDashboardData() {
+        const saved = safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY));
+        if (!saved) {
+          liveState.context = sampleContext;
+          setDataSource("sample");
+          setStatus("No dashboard state found. Using sample data.");
+          renderMetrics();
+          renderSelection();
+          return false;
+        }
+
+        liveState.context = createContextFromDashboardState(saved);
+        setDataSource("live");
+        setStatus("Loaded dashboard data.");
+        renderMetrics();
+        renderSelection();
+        return true;
+      }
+
+      function setResponse(text, isEmpty = false) {
+        responseOutput.textContent = text;
+        responseOutput.classList.toggle("empty", isEmpty);
+      }
+
+      function explainRequestFailure(error, endpoint) {
+        const message = String(error?.message || error || "");
+        const endpointText = endpoint ? `\nEndpoint: ${endpoint}` : "";
+
+        if (/Failed to fetch/i.test(message) || error instanceof TypeError) {
+          return [
+            "Request failed: the browser could not reach Hermes.",
+            endpointText ? endpointText.trimStart() : "",
+            "",
+            "Most likely causes:",
+            "- the Hermes server is not running",
+            "- the URL is wrong",
+            "- the browser is blocking a cross-origin request from this local file",
+            "",
+            "Catch up: confirm the endpoint is reachable in a normal browser tab or terminal, then try again.",
+          ]
+            .filter(Boolean)
+            .join("\n");
+        }
+
+        return [
+          "Request failed.",
+          endpointText ? endpointText.trimStart() : "",
+          "",
+          "Details:",
+          message || "Unknown error",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      async function runSelectedTest() {
+        const endpoint = endpointInput.value.trim();
+        const payload = buildPayload();
+
+        if (!endpoint) {
+          setResponse(
+            "Set a Hermes endpoint first. Example: http://localhost:3000/api/hermes\n\nThis harness expects a POST endpoint that accepts JSON with { scenario, prompt, context }.",
+            true,
+          );
+          setStatus("Endpoint required.");
+          return;
+        }
+
+        setStatus("Running test...");
+        setResponse("Sending request...", true);
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const contentType = response.headers.get("content-type") || "";
+          const body = contentType.includes("application/json")
+            ? JSON.stringify(await response.json(), null, 2)
+            : await response.text();
+
+          setResponse(
+            `Status: ${response.status} ${response.statusText}\n\n${body}`,
+            false,
+          );
+          if (response.ok) {
+            setStatus("Test completed.");
+          } else {
+            setStatus("Test returned an error.");
+          }
+        } catch (error) {
+          setResponse(explainRequestFailure(error, endpoint), false);
+          setStatus("Request failed.");
+        }
+      }
+
+      async function copyText(text, label) {
+        try {
+          await navigator.clipboard.writeText(text);
+          setStatus(`${label} copied.`);
+        } catch (error) {
+          setStatus(`Copy failed: ${error.message}`);
+        }
+      }
+
+      document.getElementById("copy-full-payload").addEventListener("click", () => {
+        copyText(payloadOutput.value, "Full payload");
+      });
+
+      document.getElementById("copy-selected-prompt").addEventListener("click", () => {
+        copyText(promptOutput.value, "Prompt");
+      });
+
+      document.getElementById("run-selected-test").addEventListener("click", runSelectedTest);
+      document.getElementById("load-live-data").addEventListener("click", loadDashboardData);
+
+      scenarioList.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-id]");
+        if (!button) return;
+        state.selectedId = button.dataset.id;
+        renderSelection();
+      });
+
+      const savedEndpoint = safeStorageGet(ENDPOINT_STORAGE_KEY);
+      if (savedEndpoint) {
+        endpointInput.value = savedEndpoint;
+      } else {
+        endpointInput.value = DEFAULT_ENDPOINT;
+      }
+
+      endpointInput.addEventListener("change", () => {
+        safeStorageSet(ENDPOINT_STORAGE_KEY, endpointInput.value.trim());
+      });
+
+      renderMetrics();
+      renderSelection();
+      setResponse("No test has run yet.", true);
+      loadDashboardData();
+    </script>
+  </body>
+</html>

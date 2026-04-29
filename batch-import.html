@@ -1,0 +1,1078 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Batch Import</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: rgba(17, 24, 39, 0.94);
+        --panel-2: rgba(28, 36, 52, 0.94);
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #f3f7ff;
+        --muted: #a7b1c2;
+        --accent: #ff8a3d;
+        --accent-2: #61d4a8;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+        --radius: 20px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 138, 61, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(97, 212, 168, 0.14), transparent 28%),
+          linear-gradient(180deg, #111827 0%, #0b0f15 100%);
+      }
+
+      body { padding: 24px; }
+
+      .shell {
+        max-width: 1420px;
+        margin: 0 auto;
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero, .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius);
+      }
+
+      .hero {
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+
+      h1, h2, p { margin: 0; }
+      h1 { font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.02; margin-bottom: 10px; }
+      .hero-copy, .panel-header p, .hint, .small, .step { color: var(--muted); line-height: 1.55; }
+
+      .toolbar {
+        display: grid;
+        gap: 10px;
+        min-width: min(100%, 560px);
+      }
+
+      .toolbar-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .field {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field label {
+        color: var(--muted);
+        font-size: 0.84rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .field input,
+      .field textarea {
+        width: 100%;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text);
+        padding: 12px 14px;
+        font: inherit;
+        outline: none;
+      }
+
+      .field input:focus,
+      .field textarea:focus {
+        border-color: rgba(255, 138, 61, 0.55);
+        box-shadow: 0 0 0 4px rgba(255, 138, 61, 0.12);
+      }
+
+      .button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .button.primary {
+        color: #171a21;
+        background: linear-gradient(135deg, var(--accent), #ffbf6b);
+      }
+
+      .button.secondary {
+        color: #10241b;
+        background: linear-gradient(135deg, #61d4a8, #b5f0d9);
+      }
+
+      .button[disabled] {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .source-chip.live {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+
+      .source-chip.sample {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.12fr 0.88fr;
+        gap: 18px;
+      }
+
+      .stack { display: grid; gap: 18px; }
+
+      .panel { padding: 18px; }
+
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 14px;
+      }
+
+      .dropzone {
+        border: 1px dashed rgba(255, 255, 255, 0.16);
+        border-radius: 18px;
+        padding: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        display: grid;
+        gap: 10px;
+        place-items: center;
+        text-align: center;
+        min-height: 190px;
+      }
+
+      .dropzone.dragover {
+        border-color: rgba(255, 138, 61, 0.65);
+        background: rgba(255, 138, 61, 0.14);
+      }
+
+      .count-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .count-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .metric-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+
+      .metric .label {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+      }
+
+      .metric .value {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.35rem;
+        font-weight: 800;
+      }
+
+      .metric .meta {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+        line-height: 1.45;
+      }
+
+      .file-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .file-card {
+        display: grid;
+        grid-template-columns: 88px 1fr;
+        gap: 12px;
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+
+      .thumb {
+        width: 88px;
+        height: 88px;
+        border-radius: 14px;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--line);
+      }
+
+      .file-meta {
+        display: grid;
+        gap: 8px;
+      }
+
+      .file-meta strong {
+        display: block;
+        word-break: break-word;
+      }
+
+      .tag-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+      }
+
+      .tag.good {
+        color: #c5f6df;
+        background: rgba(97, 212, 168, 0.14);
+      }
+
+      .tag.warn {
+        color: #ffe0b0;
+        background: rgba(255, 188, 107, 0.16);
+      }
+
+      .tag.bad {
+        color: #ffc1cb;
+        background: rgba(255, 113, 138, 0.16);
+      }
+
+      .preview-box,
+      pre {
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: #d8e3f5;
+        line-height: 1.5;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+
+      .prompt-box {
+        width: 100%;
+        min-height: 250px;
+        resize: vertical;
+        border-radius: 16px;
+        border: 1px solid var(--line);
+        background: var(--panel-2);
+        color: #d8e3f5;
+        padding: 14px;
+        line-height: 1.5;
+        font: inherit;
+      }
+
+      .empty-state {
+        display: grid;
+        gap: 8px;
+        place-items: center;
+        text-align: center;
+        min-height: 150px;
+        color: var(--muted);
+      }
+
+      .violation-box {
+        display: grid;
+        gap: 12px;
+      }
+
+      .step-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .step-card {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+
+      .step-card strong { display: block; margin-bottom: 8px; }
+
+      .mini-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      @media (max-width: 1080px) {
+        .grid, .mini-grid, .step-grid, .metric-grid { grid-template-columns: 1fr; }
+        .file-card { grid-template-columns: 1fr; }
+        .thumb { width: 100%; height: 220px; }
+      }
+
+      @media (max-width: 640px) {
+        body { padding: 14px; }
+        .hero, .panel { padding: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div>
+          <div class="source-chip sample" id="data-source-chip">Using sample dashboard data</div>
+          <h1>Batch Import</h1>
+          <p class="hero-copy">
+            Drop the night’s photos in once, label them by one order or customer, and keep the whole batch together
+            for a future violation packet.
+          </p>
+        </div>
+        <div class="toolbar">
+          <div class="field">
+            <label for="order-input">Order / customer</label>
+            <input id="order-input" type="text" placeholder="Example: dd-417-01 or customer name" />
+          </div>
+          <div class="field">
+            <label for="batch-note">Batch note</label>
+            <textarea id="batch-note" rows="3" placeholder="Example: One customer thread, gate delay, late pickup, keep together."></textarea>
+          </div>
+          <div class="toolbar-row">
+            <button class="button" id="load-live-data" type="button">Use Dashboard Data</button>
+            <button class="button" id="add-files-btn" type="button">Add Files</button>
+            <button class="button" id="add-folder-btn" type="button">Add Folder</button>
+            <button class="button primary" id="save-batch-btn" type="button">Save Batch</button>
+            <button class="button secondary" id="copy-prompt-btn" type="button">Copy Violation Prompt</button>
+            <a class="button" href="./evidence-packet.html">Open Evidence Packet</a>
+            <a class="button" href="./shift-packet.html">Open Shift Packet</a>
+            <a class="button" href="./index.html">Open Dashboard</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>How It Works</h2>
+            <p>This is the order-first flow: one batch, one customer thread, one packet later.</p>
+          </div>
+        </div>
+        <div class="step-grid">
+          <div class="step-card">
+            <strong>1. Load the night’s photos</strong>
+            <div class="step">Drag a folder or pick multiple files after you get home.</div>
+          </div>
+          <div class="step-card">
+            <strong>2. Tag one order/customer</strong>
+            <div class="step">Use the same label for every photo that belongs to the same contract issue.</div>
+          </div>
+          <div class="step-card">
+            <strong>3. Build the packet</strong>
+            <div class="step">Save the batch, then open the evidence packet and print it to PDF when needed.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>1. Drop Photos</h2>
+                <p>Drop a folder or a group of photos here. The batch stays tied to one order/customer.</p>
+              </div>
+              <div class="count-row">
+                <span class="count-chip" id="file-count">0 files</span>
+                <span class="count-chip" id="order-status">No order set</span>
+              </div>
+            </div>
+            <label class="dropzone" id="dropzone" for="file-input">
+              <strong>Click or drop files here</strong>
+              <span class="hint">PNG, JPG, JPEG. You can also use Add Folder for a whole route batch.</span>
+              <span class="hint" id="dropzone-hint">Your photos will appear as cards below.</span>
+            </label>
+            <input id="file-input" type="file" accept="image/png,image/jpeg,image/jpg" multiple hidden />
+            <input id="folder-input" type="file" accept="image/png,image/jpeg,image/jpg" multiple webkitdirectory directory hidden />
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Selected Files</h2>
+                <p>Each file keeps the shared order label and its own optional note.</p>
+              </div>
+            </div>
+            <div class="file-list" id="file-list">
+              <div class="empty-state">
+                <strong>No files selected yet.</strong>
+                <span>Use Add Files or Add Folder to start a batch.</span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Packet Preview</h2>
+                <p>This is the order packet you can later turn into a violation response PDF.</p>
+              </div>
+            </div>
+            <div class="metric-grid" id="metric-grid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Violation Response Draft</h2>
+                <p>A copyable summary for ChatGPT or a support packet.</p>
+              </div>
+            </div>
+            <textarea id="prompt-output" class="prompt-box" readonly></textarea>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Packet JSON</h2>
+                <p>The structured data behind the draft.</p>
+              </div>
+            </div>
+            <pre id="packet-output">Select files to build the packet.</pre>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const DASHBOARD_STORAGE_KEY = "food-gig-dashboard-state-v1";
+      const BATCH_STORAGE_KEY = "food-gig-batch-imports-v1";
+
+      const sampleContext = {
+        project: "food-gig-evidence",
+        date: "2026-04-17",
+        platform: "DoorDash",
+        zone: "west-side",
+        latestShift: {
+          hours: 3.75,
+          gross: 84.5,
+          bonus: 0,
+          perHour: 22.53,
+          perMile: 1.75,
+          issues: 1,
+        },
+        merchants: [
+          { name: "Wingstop", orders: 9, problemOrders: 4, waitMinutes: 11.5 },
+          { name: "Chick-fil-A", orders: 18, problemOrders: 1, waitMinutes: 4.2 },
+          { name: "Chipotle", orders: 11, problemOrders: 2, waitMinutes: 6.8 },
+        ],
+        evidence: [
+          "2026-04-17_doordash_wingstop_offer.png",
+          "2026-04-17_doordash_wingstop_dropoff-proof.jpg",
+        ],
+        cases: [{ id: "case-2026-04-17-01", issue: "customer-access", status: "open" }],
+        quickLogs: [
+          { tag: "merchant-delay", tagLabel: "Merchant delay", note: "Wingstop slowed the dinner pace.", tone: "warn", createdAt: "2026-04-17T18:32:00.000Z" },
+          { tag: "customer-access", tagLabel: "Customer access", note: "Apartment gate took extra time.", tone: "warn", createdAt: "2026-04-17T19:04:00.000Z" },
+        ],
+      };
+
+      const state = {
+        source: "sample",
+        context: sampleContext,
+        files: [],
+        packet: null,
+      };
+
+      const dataSourceChip = document.getElementById("data-source-chip");
+      const loadLiveDataBtn = document.getElementById("load-live-data");
+      const addFilesBtn = document.getElementById("add-files-btn");
+      const addFolderBtn = document.getElementById("add-folder-btn");
+      const saveBatchBtn = document.getElementById("save-batch-btn");
+      const copyPromptBtn = document.getElementById("copy-prompt-btn");
+      const orderInput = document.getElementById("order-input");
+      const batchNote = document.getElementById("batch-note");
+      const fileInput = document.getElementById("file-input");
+      const folderInput = document.getElementById("folder-input");
+      const dropzone = document.getElementById("dropzone");
+      const dropzoneHint = document.getElementById("dropzone-hint");
+      const fileCount = document.getElementById("file-count");
+      const orderStatus = document.getElementById("order-status");
+      const fileList = document.getElementById("file-list");
+      const metricGrid = document.getElementById("metric-grid");
+      const promptOutput = document.getElementById("prompt-output");
+      const packetOutput = document.getElementById("packet-output");
+
+      function safeStorageGet(key) {
+        try {
+          return window.localStorage.getItem(key);
+        } catch {
+          return null;
+        }
+      }
+
+      function safeStorageSet(key, value) {
+        try {
+          window.localStorage.setItem(key, value);
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      function safeParseJson(raw) {
+        try {
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      }
+
+      function toNumber(value) {
+        const numeric = Number(String(value).replace(/[^0-9.-]+/g, ""));
+        return Number.isFinite(numeric) ? numeric : 0;
+      }
+
+      function normalizeKey(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "");
+      }
+
+      function formatDuration(ms) {
+        const safeMs = Math.max(0, Number(ms) || 0);
+        const totalMinutes = Math.floor(safeMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours <= 0) return `${minutes}m`;
+        return `${hours}h ${minutes}m`;
+      }
+
+      function inferTags(text) {
+        const blob = String(text || "").toLowerCase();
+        const tags = new Set();
+        if (/wingstop|wait|delay|slow/.test(blob)) tags.add("merchant-delay");
+        if (/gate|customer|access|apartment|door/.test(blob)) tags.add("customer-access");
+        if (/proof|dropoff|delivered|handed/.test(blob)) tags.add("proof");
+        if (/bonus|challenge|reward/.test(blob)) tags.add("bonus");
+        if (!tags.size) tags.add("general");
+        return [...tags];
+      }
+
+      function tagTone(tag) {
+        if (tag === "proof") return "good";
+        if (tag === "merchant-delay" || tag === "customer-access") return "warn";
+        return "bad";
+      }
+
+      function loadDashboardState() {
+        return safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY)) || null;
+      }
+
+      function createContextFromDashboardState(saved) {
+        const orders = Array.isArray(saved?.orders) ? saved.orders : [];
+        const shifts = Array.isArray(saved?.shifts) ? saved.shifts : [];
+        const weekly = Array.isArray(saved?.weekly) ? saved.weekly : [];
+        const merchants = Array.isArray(saved?.merchants) ? saved.merchants : [];
+        const evidence = Array.isArray(saved?.evidence) ? saved.evidence : [];
+        const cases = Array.isArray(saved?.cases) ? saved.cases : [];
+        const latestShift = shifts[0] || {};
+        const weeklyRow = weekly[0] || {};
+        const totalGross = shifts.reduce((sum, shift) => sum + toNumber(shift.gross), 0);
+        const totalHours = shifts.reduce((sum, shift) => sum + toNumber(shift.hours), 0);
+        const totalMiles = orders.reduce((sum, order) => sum + toNumber(order.miles), 0);
+        const issueCount = orders.reduce((sum, order) => sum + (String(order.issue).toLowerCase() === "yes" ? 1 : 0), 0);
+        const weekGross = totalGross || toNumber(weeklyRow.gross) || toNumber(latestShift.gross);
+        const weekHours = totalHours || toNumber(weeklyRow.hours) || toNumber(latestShift.hours);
+
+        return {
+          project: "food-gig-evidence",
+          date: latestShift.date || "unknown",
+          platform: latestShift.platform || orders[0]?.platform || "DoorDash",
+          zone: latestShift.zone || "unknown",
+          latestShift: {
+            hours: totalHours ? Number(totalHours.toFixed(2)) : toNumber(latestShift.hours),
+            gross: totalGross || toNumber(latestShift.gross),
+            bonus: toNumber(latestShift.bonus),
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : toNumber(latestShift.perHour),
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : toNumber(latestShift.perMile),
+            issues: issueCount || toNumber(latestShift.issues),
+          },
+          merchants: merchants.map((merchant) => ({
+            name: merchant.merchant || merchant.name || "Unknown merchant",
+            orders: toNumber(merchant.orders),
+            problemOrders: toNumber(merchant.problemOrders),
+            waitMinutes: toNumber(merchant.wait || merchant.waitMinutes),
+          })),
+          evidence: evidence.map((entry) => entry.file || entry.filename || entry.path || String(entry)),
+          weekly: {
+            gross: weekGross,
+            hours: weekHours,
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : 0,
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : 0,
+            issues: toNumber(weeklyRow.issues),
+          },
+          cases: cases.map((entry) => ({
+            id: entry.id || "case-unknown",
+            issue: entry.issue || "unknown",
+            status: entry.status || "unknown",
+          })),
+        };
+      }
+
+      function setDataSource(source) {
+        state.source = source;
+        const isLive = source === "live";
+        dataSourceChip.textContent = isLive ? "Using live dashboard data" : "Using sample dashboard data";
+        dataSourceChip.classList.toggle("live", isLive);
+        dataSourceChip.classList.toggle("sample", !isLive);
+      }
+
+      function getBatchId() {
+        const orderKey = normalizeKey(orderInput.value || "unassigned");
+        return `batch-${orderKey || "general"}-${(state.files.length || 0).toString().padStart(2, "0")}`;
+      }
+
+      function fileUrlFor(file) {
+        return URL.createObjectURL(file);
+      }
+
+      function addFiles(fileListLike) {
+        const incoming = Array.from(fileListLike || []).filter((file) => file && file.type.startsWith("image/"));
+        if (!incoming.length) return;
+        for (const file of incoming) {
+          const existing = state.files.some((item) => item.file.name === file.name && item.file.size === file.size);
+          if (existing) continue;
+          state.files.push({
+            id: `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+            file,
+            previewUrl: fileUrlFor(file),
+            note: "",
+          });
+        }
+        render();
+      }
+
+      function removeFile(id) {
+        const removed = state.files.find((item) => item.id === id);
+        if (removed?.previewUrl) {
+          URL.revokeObjectURL(removed.previewUrl);
+        }
+        state.files = state.files.filter((item) => item.id !== id);
+        render();
+      }
+
+      function inferBatchText() {
+        const order = orderInput.value.trim() || "unassigned order";
+        const batchNoteText = batchNote.value.trim();
+        const files = state.files.slice(0, 20).map((item, index) => {
+          const tags = inferTags(`${item.file.name} ${item.note || ""} ${order} ${batchNoteText}`);
+          return `${index + 1}. ${item.file.name}${item.note ? ` - ${item.note}` : ""} [${tags.join(", ")}]`;
+        });
+
+        return [
+          `Draft a violation response packet for one order/customer thread: ${order}.`,
+          batchNoteText ? `Batch note: ${batchNoteText}` : "Batch note: none provided.",
+          `Keep all related photos together in one packet.`,
+          `Use a neutral, factual tone and organize the response with sections for summary, evidence, timeline, impact, and next steps.`,
+          ``,
+          `Packet facts:`,
+          `- Date: ${state.context.date || "unknown"}`,
+          `- Platform: ${state.context.platform || "unknown"}`,
+          `- Zone: ${state.context.zone || "unknown"}`,
+          `- Shift gross: $${Number(state.context.latestShift?.gross || 0).toFixed(2)}`,
+          `- Shift hours: ${state.context.latestShift?.hours ?? "unknown"}`,
+          `- Issues: ${state.context.latestShift?.issues ?? 0}`,
+          `- Files: ${state.files.length}`,
+          ``,
+          `Files:`,
+          ...files,
+          ``,
+          `Return a response draft that could be pasted into a support ticket and later exported to PDF.`,
+        ].join("\n");
+      }
+
+      function buildBatchEntries() {
+        const order = orderInput.value.trim() || "unassigned";
+        const batchNoteText = batchNote.value.trim();
+        const batchId = getBatchId();
+        const today = state.context.date || new Date().toISOString().slice(0, 10);
+        return state.files.map((item, index) => {
+          const tags = inferTags(`${item.file.name} ${item.note || ""} ${order} ${batchNoteText}`);
+          const primaryTag = tags[0] || "general";
+          const type =
+            primaryTag === "proof" ? "dropoff-proof" :
+            primaryTag === "bonus" ? "final-payout" :
+            primaryTag === "merchant-delay" ? "offer" :
+            primaryTag === "customer-access" ? "dropoff-proof" :
+            "offer";
+          const fileNote = item.note.trim();
+          const mergedNote = [batchNoteText, fileNote].filter(Boolean).join(" · ");
+          const caseId = `violation-${normalizeKey(order) || "unassigned"}`;
+          return {
+            file: item.file.name,
+            type,
+            platform: state.context.platform || "DoorDash",
+            date: today,
+            order,
+            orderId: order,
+            customerOrder: order,
+            caseId,
+            folder: "batch-import",
+            notes: mergedNote,
+            confidence: "manual",
+            confidenceReason: `batch imported (${tags.join(", ")})`,
+            batchId,
+            batchLabel: order,
+            batchIndex: index + 1,
+          };
+        });
+      }
+
+      function buildPacket() {
+        const orders = Array.isArray(state.context?.orders) ? state.context.orders : [];
+        const shifts = Array.isArray(state.context?.shifts) ? state.context.shifts : [];
+        const weekly = Array.isArray(state.context?.weekly) ? state.context.weekly : [];
+        const totalGross = shifts.reduce((sum, shift) => sum + toNumber(shift.gross), 0);
+        const totalHours = shifts.reduce((sum, shift) => sum + toNumber(shift.hours), 0);
+        const totalMiles = orders.reduce((sum, order) => sum + toNumber(order.miles), 0);
+        const issueCount = orders.reduce((sum, order) => sum + (String(order.issue).toLowerCase() === "yes" ? 1 : 0), 0);
+        const weekRow = weekly[0] || {};
+        const evidence = buildBatchEntries();
+        const orderLabel = orderInput.value.trim() || "Unassigned order";
+        const batchTags = inferTags(`${orderLabel} ${batchNote.value} ${evidence.map((entry) => entry.file).join(" ")}`);
+
+        const packet = {
+          project: "food-gig-evidence",
+          date: state.context.date || "unknown",
+          platform: state.context.platform || "unknown",
+          zone: state.context.zone || "unknown",
+          order: orderLabel,
+          batchNote: batchNote.value.trim(),
+          batchId: getBatchId(),
+          fileCount: state.files.length,
+          tags: batchTags,
+          latestShift: {
+            hours: totalHours ? Number(totalHours.toFixed(2)) : toNumber(state.context.latestShift?.hours),
+            gross: totalGross || toNumber(state.context.latestShift?.gross),
+            bonus: toNumber(state.context.latestShift?.bonus),
+            perHour: totalHours ? Number((totalGross / totalHours).toFixed(2)) : toNumber(state.context.latestShift?.perHour),
+            perMile: totalMiles ? Number((totalGross / totalMiles).toFixed(2)) : toNumber(state.context.latestShift?.perMile),
+            issues: issueCount || toNumber(state.context.latestShift?.issues),
+          },
+          weekly: {
+            week: weekRow.week || "unknown",
+            gross: toNumber(weekRow.gross) || totalGross,
+            bonus: toNumber(weekRow.bonus),
+            hours: toNumber(weekRow.hours) || totalHours,
+            perHour: totalHours ? Number((totalGross / totalHours).toFixed(2)) : 0,
+            perMile: totalMiles ? Number((totalGross / totalMiles).toFixed(2)) : 0,
+            issues: toNumber(weekRow.issues),
+          },
+          evidence,
+          packetText: inferBatchText(),
+        };
+
+        return packet;
+      }
+
+      function saveBatchManifest(packet) {
+        const raw = safeStorageGet(BATCH_STORAGE_KEY);
+        const saved = safeParseJson(raw) || [];
+        const manifest = {
+          batchId: packet.batchId,
+          order: packet.order,
+          date: packet.date,
+          platform: packet.platform,
+          zone: packet.zone,
+          fileCount: packet.fileCount,
+          fileNames: packet.evidence.map((entry) => entry.file),
+          notes: packet.batchNote,
+          createdAt: new Date().toISOString(),
+        };
+        const next = [manifest, ...saved.filter((item) => item.batchId !== manifest.batchId)].slice(0, 25);
+        safeStorageSet(BATCH_STORAGE_KEY, JSON.stringify(next));
+      }
+
+      function saveToDashboardEvidence(packet) {
+        const raw = safeStorageGet(DASHBOARD_STORAGE_KEY);
+        const saved = safeParseJson(raw) || {};
+        const evidence = Array.isArray(saved.evidence) ? saved.evidence : [];
+        const nextEvidence = evidence.filter((entry) => !packet.evidence.some((incoming) => incoming.file === entry.file));
+        saved.evidence = packet.evidence.concat(nextEvidence);
+        if (!saved.selectedEvidenceFile && packet.evidence[0]) {
+          saved.selectedEvidenceFile = packet.evidence[0].file;
+        }
+        safeStorageSet(DASHBOARD_STORAGE_KEY, JSON.stringify(saved));
+      }
+
+      function setSource(saved) {
+        setDataSource(saved ? "live" : "sample");
+      }
+
+      function setMetrics(packet) {
+        metricGrid.innerHTML = [
+          { label: "Files", value: String(packet.fileCount), meta: `Order: ${packet.order}` },
+          { label: "Shift Gross", value: `$${packet.latestShift.gross.toFixed(2)}`, meta: `Work: ${formatDuration(packet.latestShift.hours * 3600000)}` },
+          { label: "Issues", value: String(packet.latestShift.issues), meta: `Tags: ${packet.tags.join(", ")}` },
+          { label: "Packet", value: packet.batchId, meta: "Ready for PDF export later" },
+        ]
+          .map(
+            (metric) => `
+              <div class="metric">
+                <span class="label">${metric.label}</span>
+                <strong class="value">${metric.value}</strong>
+                <span class="meta">${metric.meta}</span>
+              </div>
+            `,
+          )
+          .join("");
+      }
+
+      function renderFiles() {
+        fileCount.textContent = `${state.files.length} file${state.files.length === 1 ? "" : "s"}`;
+        const orderLabel = orderInput.value.trim();
+        orderStatus.textContent = orderLabel ? `Order: ${orderLabel}` : "No order set";
+        dropzoneHint.textContent = state.files.length ? "Files are loaded. Add more or save the batch." : "Your photos will appear as cards below.";
+
+        if (!state.files.length) {
+          fileList.innerHTML = `
+            <div class="empty-state">
+              <strong>No files selected yet.</strong>
+              <span>Use Add Files or Add Folder to start a batch.</span>
+            </div>
+          `;
+          return;
+        }
+
+        fileList.innerHTML = state.files
+          .map((item) => {
+            const tags = inferTags(`${item.file.name} ${item.note} ${orderInput.value} ${batchNote.value}`);
+            return `
+              <div class="file-card" data-file-id="${item.id}">
+                <img class="thumb" src="${item.previewUrl}" alt="${item.file.name}" />
+                <div class="file-meta">
+                  <strong>${item.file.name}</strong>
+                  <div class="small">${Math.round(item.file.size / 1024)} KB · ${item.file.type || "image"}</div>
+                  <label class="field">
+                    <span class="small">Optional note for this file</span>
+                    <input type="text" data-file-note="${item.id}" value="${escapeHtml(item.note)}" placeholder="Example: gate issue, late pickup, proof photo" />
+                  </label>
+                  <div class="tag-row">
+                    ${tags.map((tag) => `<span class="tag ${tagTone(tag)}">${tag}</span>`).join("")}
+                    <button class="button" type="button" data-remove-file="${item.id}">Remove</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function renderPacket() {
+        const packet = buildPacket();
+        state.packet = packet;
+        setSource(loadDashboardState());
+        setMetrics(packet);
+
+        promptOutput.value = packet.packetText;
+        packetOutput.textContent = JSON.stringify(
+          {
+            ...packet,
+            evidence: packet.evidence,
+          },
+          null,
+          2,
+        );
+      }
+
+      function render() {
+        renderFiles();
+        renderPacket();
+      }
+
+      function copyPrompt() {
+        if (!state.packet) return Promise.resolve();
+        return navigator.clipboard.writeText(state.packet.packetText);
+      }
+
+      async function loadFileList(fileListLike) {
+        addFiles(fileListLike);
+      }
+
+      function loadLiveData() {
+        const saved = loadDashboardState();
+        if (saved) {
+          state.context = createContextFromDashboardState(saved);
+          setDataSource("live");
+        } else {
+          state.context = sampleContext;
+          setDataSource("sample");
+        }
+        render();
+      }
+
+      function saveBatch() {
+        if (!state.files.length) {
+          return;
+        }
+        const packet = buildPacket();
+        saveToDashboardEvidence(packet);
+        saveBatchManifest(packet);
+        packetOutput.textContent = JSON.stringify(
+          {
+            saved: true,
+            batchId: packet.batchId,
+            order: packet.order,
+            fileCount: packet.fileCount,
+            evidence: packet.evidence.map((entry) => entry.file),
+          },
+          null,
+          2,
+        );
+        promptOutput.value = packet.packetText;
+      }
+
+      function syncNotes() {
+        const noteInputs = document.querySelectorAll("[data-file-note]");
+        noteInputs.forEach((input) => {
+          const item = state.files.find((entry) => entry.id === input.getAttribute("data-file-note"));
+          if (item) item.note = input.value;
+        });
+      }
+
+      function initEvents() {
+        loadLiveDataBtn.addEventListener("click", loadLiveData);
+        addFilesBtn.addEventListener("click", () => fileInput.click());
+        addFolderBtn.addEventListener("click", () => folderInput.click());
+        saveBatchBtn.addEventListener("click", () => {
+          syncNotes();
+          saveBatch();
+        });
+        copyPromptBtn.addEventListener("click", async () => {
+          syncNotes();
+          await copyPrompt();
+        });
+
+        orderInput.addEventListener("input", render);
+        batchNote.addEventListener("input", render);
+
+        fileInput.addEventListener("change", (event) => {
+          loadFileList(event.target.files);
+          fileInput.value = "";
+        });
+
+        folderInput.addEventListener("change", (event) => {
+          loadFileList(event.target.files);
+          folderInput.value = "";
+        });
+
+        dropzone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          dropzone.classList.add("dragover");
+        });
+
+        dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+        dropzone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          dropzone.classList.remove("dragover");
+          loadFileList(event.dataTransfer?.files || []);
+        });
+
+        document.addEventListener("click", (event) => {
+          const removeId = event.target?.getAttribute?.("data-remove-file");
+          if (removeId) {
+            removeFile(removeId);
+          }
+        });
+
+        document.addEventListener("input", (event) => {
+          const noteId = event.target?.getAttribute?.("data-file-note");
+          if (!noteId) return;
+          const item = state.files.find((entry) => entry.id === noteId);
+          if (item) {
+            item.note = event.target.value;
+            renderPacket();
+          }
+        });
+      }
+
+      render();
+      initEvents();
+    </script>
+  </body>
+</html>

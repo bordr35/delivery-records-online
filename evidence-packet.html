@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Evidence Packet</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: rgba(17, 24, 39, 0.94);
+        --panel-2: rgba(28, 36, 52, 0.94);
+        --line: rgba(255, 255, 255, 0.08);
+        --text: #f3f7ff;
+        --muted: #a7b1c2;
+        --accent: #ff8a3d;
+        --accent-2: #61d4a8;
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+        --radius: 20px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top left, rgba(255, 138, 61, 0.16), transparent 28%),
+          radial-gradient(circle at top right, rgba(97, 212, 168, 0.14), transparent 28%),
+          linear-gradient(180deg, #111827 0%, #0b0f15 100%);
+      }
+
+      body { padding: 24px; }
+      .shell { max-width: 1360px; margin: 0 auto; display: grid; gap: 18px; }
+      .hero, .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(16px);
+        border-radius: var(--radius);
+      }
+      .hero {
+        padding: 24px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        align-items: end;
+      }
+      h1, h2, p { margin: 0; }
+      h1 { font-size: clamp(2rem, 4vw, 3.2rem); line-height: 1.02; margin-bottom: 10px; }
+      .hero-copy, .panel-header p, .hint, .step, .small {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .toolbar { display: grid; gap: 10px; min-width: min(100%, 460px); }
+      .toolbar-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      .button {
+        appearance: none;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.08);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+      }
+      .button.primary { color: #171a21; background: linear-gradient(135deg, var(--accent), #ffbf6b); }
+      .button.secondary { color: #10241b; background: linear-gradient(135deg, #61d4a8, #b5f0d9); }
+      .source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+      .source-chip.live { color: #c5f6df; background: rgba(97, 212, 168, 0.14); }
+      .source-chip.sample { color: #ffe0b0; background: rgba(255, 188, 107, 0.16); }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .stack { display: grid; gap: 18px; }
+      .panel { padding: 18px; }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+        margin-bottom: 14px;
+      }
+      .metric-row {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .metric {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+      .metric .label {
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.8rem;
+      }
+      .metric .value {
+        display: block;
+        margin-top: 8px;
+        font-size: 1.35rem;
+        font-weight: 800;
+      }
+      .metric .meta {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+      .packet {
+        display: grid;
+        gap: 10px;
+      }
+      .case-card, .evidence-card, .log-card {
+        padding: 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        display: grid;
+        gap: 8px;
+      }
+      .case-card h3, .evidence-card h3, .log-card h3 { margin: 0; }
+      .tag-row { display: flex; flex-wrap: wrap; gap: 8px; }
+      .tag {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--muted);
+      }
+      .tag.good { color: #c5f6df; background: rgba(97, 212, 168, 0.14); }
+      .tag.warn { color: #ffe0b0; background: rgba(255, 188, 107, 0.16); }
+      .tag.bad { color: #ffc1cb; background: rgba(255, 113, 138, 0.16); }
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+      .subtle {
+        color: var(--muted);
+        line-height: 1.55;
+      }
+      .print-note {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(97, 212, 168, 0.12);
+        border: 1px solid rgba(97, 212, 168, 0.22);
+        color: #d8f7e9;
+      }
+      .cover-sheet {
+        display: grid;
+        gap: 12px;
+      }
+      .cover-title {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: start;
+      }
+      .cover-title strong {
+        display: block;
+        font-size: 1.2rem;
+        margin-bottom: 6px;
+      }
+      .cover-body {
+        display: grid;
+        gap: 12px;
+      }
+      .cover-statement {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+        line-height: 1.55;
+      }
+      .cover-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .cover-card {
+        padding: 14px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--line);
+      }
+      .cover-card span {
+        display: block;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 0.78rem;
+        margin-bottom: 8px;
+      }
+      pre {
+        margin: 0;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--panel-2);
+        border: 1px solid var(--line);
+        color: #d8e3f5;
+        line-height: 1.5;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+      @media (max-width: 980px) {
+        .grid, .metric-row { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 640px) {
+        body { padding: 14px; }
+        .hero, .panel { padding: 16px; }
+      }
+      @media print {
+        body {
+          background: #fff;
+          color: #000;
+          padding: 0;
+        }
+        .hero, .panel {
+          box-shadow: none;
+          background: #fff;
+          color: #000;
+          border-color: #ddd;
+        }
+        .button, .source-chip, .print-note, .toolbar, .hero-copy, .subtle {
+          display: none !important;
+        }
+        .cover-sheet, .cover-title, .cover-statement, .cover-card {
+          color: #000;
+          background: #fff;
+          border-color: #ddd;
+        }
+        .tag, .metric, .case-card, .evidence-card, .log-card, pre {
+          border-color: #ddd;
+          color: #000;
+          background: #fff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <section class="hero">
+        <div>
+          <div class="source-chip sample" id="data-source-chip">Using sample dashboard data</div>
+          <h1>Evidence Packet</h1>
+          <p class="hero-copy">
+            This is the printable case-file view. It groups evidence, quick logs, and cases into a packet you can save as PDF and send to support if needed.
+          </p>
+        </div>
+        <div class="toolbar">
+          <div class="toolbar-row">
+            <button class="button primary" id="print-btn" type="button">Print / Save PDF</button>
+            <button class="button secondary" id="copy-summary-btn" type="button">Copy Summary</button>
+            <a class="button" href="./batch-import.html">Open Batch Import</a>
+            <a class="button" href="./shift-packet.html">Open Shift Packet</a>
+            <a class="button" href="./quick-log.html">Open Quick Log</a>
+            <a class="button" href="./index.html">Open Dashboard</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Print Note</h2>
+            <p>Use the browser print dialog and choose “Save as PDF” to create the packet file.</p>
+          </div>
+        </div>
+        <div class="print-note">
+          This page is designed to be printed. If you want to send a violation response packet to DoorDash, Uber, Grubhub, or another platform, use this page after you finish sorting evidence by order/customer.
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Packet Summary</h2>
+            <p>High-level scan of the shift, session, and evidence count.</p>
+          </div>
+        </div>
+        <div class="metric-row" id="metric-row"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Violation Response Cover Sheet</h2>
+            <p>Open with this page first when you want the packet to read like a formal response.</p>
+          </div>
+        </div>
+        <div class="cover-sheet" id="cover-sheet"></div>
+      </section>
+
+      <section class="grid">
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Order Packets</h2>
+                <p>Each order packet keeps all photos for the same customer/order together.</p>
+              </div>
+            </div>
+            <div class="list" id="case-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Suggested Review Buckets</h2>
+                <p>Unassigned evidence is grouped into draft buckets so you can turn it into a packet faster.</p>
+              </div>
+            </div>
+            <div class="list" id="bucket-list"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Unassigned Evidence</h2>
+                <p>Files not yet linked to an order packet.</p>
+              </div>
+            </div>
+            <div class="list" id="unassigned-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-header">
+              <div>
+                <h2>Quick Logs</h2>
+                <p>The on-road notes that help explain the evidence later.</p>
+              </div>
+            </div>
+            <div class="list" id="log-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Packet Text</h2>
+            <p>Copy this into a note or document if you want to build a more formal case packet.</p>
+          </div>
+        </div>
+        <pre id="packet-output">Loading packet...</pre>
+      </section>
+    </div>
+
+    <script>
+      const DASHBOARD_STORAGE_KEY = "food-gig-dashboard-state-v1";
+      const QUICK_LOG_STORAGE_KEY = "food-gig-quick-log-v1";
+      const SHIFT_SESSION_KEY = "food-gig-shift-session-v1";
+
+      const state = {
+        packet: null,
+      };
+
+      const dataSourceChip = document.getElementById("data-source-chip");
+      const metricRow = document.getElementById("metric-row");
+      const coverSheet = document.getElementById("cover-sheet");
+      const caseList = document.getElementById("case-list");
+      const bucketList = document.getElementById("bucket-list");
+      const unassignedList = document.getElementById("unassigned-list");
+      const logList = document.getElementById("log-list");
+      const packetOutput = document.getElementById("packet-output");
+      const printBtn = document.getElementById("print-btn");
+      const copySummaryBtn = document.getElementById("copy-summary-btn");
+
+      function safeStorageGet(key) {
+        try { return window.localStorage.getItem(key); } catch { return null; }
+      }
+
+      function safeParseJson(raw) {
+        try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+      }
+
+      function safeNumber(value) {
+        const numeric = Number(String(value).replace(/[^0-9.-]+/g, ""));
+        return Number.isFinite(numeric) ? numeric : 0;
+      }
+
+      function normalizeOrderKey(value) {
+        return String(value || "")
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "");
+      }
+
+      function loadDashboardState() {
+        return safeParseJson(safeStorageGet(DASHBOARD_STORAGE_KEY)) || null;
+      }
+
+      function loadQuickLogs() {
+        const saved = safeParseJson(safeStorageGet(QUICK_LOG_STORAGE_KEY));
+        return Array.isArray(saved) ? saved : [];
+      }
+
+      function loadSession() {
+        return safeParseJson(safeStorageGet(SHIFT_SESSION_KEY));
+      }
+
+      function formatDuration(ms) {
+        const safeMs = Math.max(0, Number(ms) || 0);
+        const totalMinutes = Math.floor(safeMs / 60000);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        if (hours <= 0) return `${minutes}m`;
+        return `${hours}h ${minutes}m`;
+      }
+
+      function getBreakDurationMs(session) {
+        const breaks = Array.isArray(session?.breaks) ? session.breaks : [];
+        const completed = breaks.reduce((sum, entry) => {
+          const start = new Date(entry.startedAt || "").getTime();
+          const end = new Date(entry.endedAt || "").getTime();
+          if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return sum;
+          return sum + (end - start);
+        }, 0);
+        const currentBreakStart = session?.status === "paused" && session?.breakStartedAt ? new Date(session.breakStartedAt).getTime() : 0;
+        const currentBreak = Number.isFinite(currentBreakStart) && currentBreakStart > 0 ? Math.max(0, Date.now() - currentBreakStart) : 0;
+        return completed + currentBreak;
+      }
+
+      function getSessionDurationMs(session) {
+        if (!session?.startedAt) return 0;
+        const started = new Date(session.startedAt).getTime();
+        const ended = session.status === "paused" && session.breakStartedAt
+          ? new Date(session.breakStartedAt).getTime()
+          : session.endedAt
+            ? new Date(session.endedAt).getTime()
+            : Date.now();
+        if (!Number.isFinite(started) || !Number.isFinite(ended)) return 0;
+        return Math.max(0, ended - started - getBreakDurationMs(session));
+      }
+
+      function inferCaseBucket(entry) {
+        const blob = `${entry.file || ""} ${entry.type || ""} ${entry.notes || ""}`.toLowerCase();
+        if (/wingstop|wait|delay|slow/.test(blob)) return "merchant-delay";
+        if (/gate|customer|access|apartment|door/.test(blob)) return "customer-access";
+        if (/proof|dropoff|delivered|handed/.test(blob)) return "proof";
+        if (/bonus|challenge|reward/.test(blob)) return "bonus";
+        return "other";
+      }
+
+      function bucketLabel(key) {
+        const map = {
+          "merchant-delay": "Merchant Delay",
+          "customer-access": "Customer Access",
+          proof: "Proof / Delivery",
+          bonus: "Bonus / Challenge",
+          other: "Other / Review",
+        };
+        return map[key] || "Other / Review";
+      }
+
+      function buildPacket() {
+        const saved = loadDashboardState();
+        const quickLogs = loadQuickLogs();
+        const session = loadSession();
+        const orders = Array.isArray(saved?.orders) ? saved.orders : [];
+        const shifts = Array.isArray(saved?.shifts) ? saved.shifts : [];
+        const weekly = Array.isArray(saved?.weekly) ? saved.weekly : [];
+        const merchants = Array.isArray(saved?.merchants) ? saved.merchants : [];
+        const evidence = Array.isArray(saved?.evidence) ? saved.evidence : [];
+        const cases = Array.isArray(saved?.cases) ? saved.cases : [];
+        const activeSessionId = session?.id || quickLogs.find((item) => item.shiftId)?.shiftId || "";
+        const activeLogs = quickLogs.filter((item) => !activeSessionId || item.shiftId === activeSessionId);
+        const latestShift = shifts[0] || {};
+        const totalGross = shifts.reduce((sum, shift) => sum + safeNumber(shift.gross), 0);
+        const totalHours = shifts.reduce((sum, shift) => sum + safeNumber(shift.hours), 0);
+        const totalMiles = orders.reduce((sum, order) => sum + safeNumber(order.miles), 0);
+        const issueCount = orders.reduce((sum, order) => sum + (String(order.issue).toLowerCase() === "yes" ? 1 : 0), 0);
+        const weekRow = weekly[0] || {};
+        const weekGross = totalGross || safeNumber(weekRow.gross) || safeNumber(latestShift.gross);
+        const weekHours = totalHours || safeNumber(weekRow.hours) || safeNumber(latestShift.hours);
+
+        const orderMap = new Map();
+        const orderCandidates = evidence.map((entry) => {
+          const orderId = String(entry.order || entry.orderId || entry.customerOrder || entry.caseId || "").trim();
+          const key = normalizeOrderKey(orderId || "unassigned");
+          if (!orderMap.has(key)) {
+            orderMap.set(key, {
+              orderId: orderId || "unassigned",
+              label: orderId || "Unassigned",
+              evidence: [],
+              logs: [],
+              cases: [],
+            });
+          }
+          return { entry, key };
+        });
+
+        for (const { entry, key } of orderCandidates) {
+          orderMap.get(key).evidence.push(entry);
+        }
+
+        for (const orderPacket of orderMap.values()) {
+          const orderText = normalizeOrderKey(orderPacket.orderId);
+          orderPacket.logs = activeLogs.filter((log) => {
+            const blob = `${log.note || ""} ${log.tagLabel || ""} ${log.tag || ""}`.toLowerCase();
+            return orderText ? blob.includes(orderText) : false;
+          });
+          orderPacket.cases = cases.filter((caseFile) => {
+            const caseText = normalizeOrderKey(caseFile.id || "");
+            return caseText && orderText ? caseText === orderText : false;
+          });
+        }
+
+        const orderPackets = Array.from(orderMap.values()).sort((a, b) => {
+          if (a.orderId === "unassigned") return 1;
+          if (b.orderId === "unassigned") return -1;
+          return String(a.orderId).localeCompare(String(b.orderId));
+        });
+
+        const unassignedEvidence = evidence.filter((entry) => !String(entry.order || entry.orderId || "").trim() || String(entry.order || entry.orderId || "").trim() === "-");
+        const buckets = new Map();
+        for (const entry of unassignedEvidence) {
+          const key = inferCaseBucket(entry);
+          if (!buckets.has(key)) buckets.set(key, []);
+          buckets.get(key).push(entry);
+        }
+
+        const packet = {
+          date: session?.date || latestShift.date || "unknown",
+          platform: session?.platform || latestShift.platform || "DoorDash",
+          zone: session?.zone || latestShift.zone || "unknown",
+          session,
+          sessionDuration: session ? formatDuration(getSessionDurationMs(session)) : "0m",
+          breakDuration: session ? formatDuration(getBreakDurationMs(session)) : "0m",
+          latestShift: {
+            hours: totalHours ? Number(totalHours.toFixed(2)) : safeNumber(latestShift.hours),
+            gross: totalGross || safeNumber(latestShift.gross),
+            bonus: safeNumber(latestShift.bonus),
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : safeNumber(latestShift.perHour),
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : safeNumber(latestShift.perMile),
+            issues: issueCount || safeNumber(latestShift.issues),
+          },
+          weekly: {
+            week: weekRow.week || "unknown",
+            gross: weekGross,
+            bonus: safeNumber(weekRow.bonus),
+            hours: weekHours,
+            perHour: weekHours ? Number((weekGross / weekHours).toFixed(2)) : 0,
+            perMile: totalMiles ? Number((weekGross / totalMiles).toFixed(2)) : 0,
+            issues: safeNumber(weekRow.issues),
+          },
+          orderPackets,
+          buckets: Array.from(buckets.entries()).map(([key, entries]) => ({
+            key,
+            label: bucketLabel(key),
+            entries,
+          })),
+          unassignedEvidence,
+          quickLogs: activeLogs,
+        };
+
+        return packet;
+      }
+
+      function setSourceChip(saved) {
+        const live = Boolean(saved);
+        dataSourceChip.textContent = live ? "Using live dashboard data" : "Using sample dashboard data";
+        dataSourceChip.classList.toggle("live", live);
+        dataSourceChip.classList.toggle("sample", !live);
+      }
+
+      function formatEvidenceTag(entry) {
+        const tone =
+          entry.type === "dropoff-proof" || entry.type === "proof" ? "good" :
+          entry.type === "offer" ? "warn" :
+          "neutral";
+        return `<span class="tag ${tone}">${entry.type || "unknown"}</span>`;
+      }
+
+      function buildCoverSheet(packet) {
+        const primaryOrder = packet.orderPackets.find((item) => item.orderId !== "unassigned") || packet.orderPackets[0] || null;
+        const orderLabel = primaryOrder?.orderId || "Unassigned order";
+        const evidenceCount = primaryOrder?.evidence.length || packet.orderPackets.reduce((sum, item) => sum + item.evidence.length, 0);
+        const logCount = primaryOrder?.logs.length || packet.quickLogs.length;
+        const issueTone = packet.latestShift.issues > 0 ? "warn" : "good";
+        const primaryTags = [
+          `${evidenceCount} evidence files`,
+          `${logCount} quick logs`,
+          `${packet.breakDuration || "0m"} break time`,
+        ];
+
+        return {
+          title: "Violation Response Cover Sheet",
+          orderLabel,
+          summary: `This packet groups the evidence for ${orderLabel} into one customer/order thread so it can be reviewed as a single violation response.`,
+          details: [
+            { label: "Date", value: packet.date },
+            { label: "Platform", value: packet.platform },
+            { label: "Zone", value: packet.zone },
+            { label: "Session", value: packet.session?.id || "No session saved" },
+            { label: "Evidence", value: String(evidenceCount) },
+            { label: "Logs", value: String(logCount) },
+          ],
+          tags: primaryTags,
+          tone: issueTone,
+        };
+      }
+
+      function render() {
+        const packet = buildPacket();
+        state.packet = packet;
+        const cover = buildCoverSheet(packet);
+        packet.cover = cover;
+
+        setSourceChip(loadDashboardState());
+
+        const sessionState = packet.session?.status || "none";
+        metricRow.innerHTML = [
+          { label: "Shift Gross", value: `$${packet.latestShift.gross.toFixed(2)}`, meta: `Work: ${packet.sessionDuration}` },
+          { label: "Issues", value: String(packet.latestShift.issues), meta: `Breaks: ${packet.breakDuration}` },
+          { label: "Evidence", value: String(packet.orderPackets.reduce((sum, item) => sum + item.evidence.length, 0)), meta: `${packet.orderPackets.length} order packets` },
+          { label: "Session", value: sessionState, meta: packet.session?.id || "No session saved" },
+        ]
+          .map(
+            (metric) => `
+              <div class="metric">
+                <span class="label">${metric.label}</span>
+                <strong class="value">${metric.value}</strong>
+                <span class="meta">${metric.meta}</span>
+              </div>
+            `,
+          )
+          .join("");
+
+        coverSheet.innerHTML = `
+          <div class="cover-title">
+            <div>
+              <strong>${cover.title}</strong>
+              <div class="subtle">${cover.summary}</div>
+            </div>
+            <div class="tag-row">
+              <span class="tag ${cover.tone}">${cover.orderLabel}</span>
+              ${cover.tags.map((tag) => `<span class="tag">${tag}</span>`).join("")}
+            </div>
+          </div>
+          <div class="cover-body">
+            <div class="cover-statement">
+              Suggested response language: keep the packet factual, brief, and tied to the order thread. The evidence below should support the issue without spreading unrelated photos into the same response.
+            </div>
+            <div class="cover-grid">
+              ${cover.details.map((item) => `
+                <div class="cover-card">
+                  <span>${item.label}</span>
+                  <strong>${item.value}</strong>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+
+        caseList.innerHTML = packet.orderPackets.length
+          ? packet.orderPackets
+              .map(
+                (orderPacket) => `
+                  <div class="case-card">
+                    <h3>${orderPacket.orderId}</h3>
+                    <div class="small">${orderPacket.evidence.length} evidence files · ${orderPacket.logs.length} quick logs</div>
+                    <div class="subtle">${orderPacket.cases.length ? `${orderPacket.cases.length} linked case note(s)` : "No linked case note yet."}</div>
+                    <div class="tag-row">
+                      <span class="tag">${orderPacket.evidence.length} evidence</span>
+                      <span class="tag">${orderPacket.logs.length} quick logs</span>
+                      <span class="tag">${orderPacket.cases.length} case notes</span>
+                    </div>
+                    <div class="list">
+                      ${orderPacket.evidence.map((entry) => `
+                        <div class="evidence-card">
+                          <h3>${entry.file}</h3>
+                          <div class="subtle">${entry.notes || "No note attached."}</div>
+                          <div class="tag-row">
+                            ${formatEvidenceTag(entry)}
+                            <span class="tag">${entry.order || entry.orderId || "-"}</span>
+                            <span class="tag">${entry.folder || "unknown"}</span>
+                          </div>
+                        </div>
+                      `).join("")}
+                    </div>
+                  </div>
+                `,
+              )
+              .join("")
+          : `<div class="case-card"><h3>No order packets yet.</h3><div class="subtle">Add evidence with an order ID so the packet can group the photos together.</div></div>`;
+
+        bucketList.innerHTML = packet.buckets.length
+          ? packet.buckets
+              .map(
+                (bucket) => `
+                  <div class="case-card">
+                    <h3>${bucket.label}</h3>
+                    <div class="subtle">Suggested grouping for evidence that is not yet linked to an order packet.</div>
+                    <div class="tag-row">
+                      <span class="tag">${bucket.entries.length} files</span>
+                    </div>
+                    <div class="list">
+                      ${bucket.entries.map((entry) => `
+                        <div class="evidence-card">
+                          <h3>${entry.file}</h3>
+                          <div class="subtle">${entry.notes || "No note attached."}</div>
+                          <div class="tag-row">
+                            ${formatEvidenceTag(entry)}
+                            <span class="tag">${entry.order || entry.orderId || "-"}</span>
+                          </div>
+                        </div>
+                      `).join("")}
+                    </div>
+                  </div>
+                `,
+              )
+              .join("")
+          : `<div class="case-card"><h3>No suggested buckets.</h3><div class="subtle">All evidence is already linked, or there is no evidence yet.</div></div>`;
+
+        unassignedList.innerHTML = packet.unassignedEvidence.length
+          ? packet.unassignedEvidence
+              .map(
+                (entry) => `
+                  <div class="evidence-card">
+                    <h3>${entry.file}</h3>
+                    <div class="subtle">${entry.notes || "No note attached."}</div>
+                    <div class="tag-row">
+                      ${formatEvidenceTag(entry)}
+                      <span class="tag">${entry.order || entry.orderId || "-"}</span>
+                    </div>
+                  </div>
+                `,
+              )
+              .join("")
+          : `<div class="evidence-card"><h3>No unassigned evidence.</h3><div class="subtle">Everything currently points at an order packet.</div></div>`;
+
+        logList.innerHTML = packet.quickLogs.length
+          ? packet.quickLogs
+              .map(
+                (log) => `
+                  <div class="log-card">
+                    <h3>${log.tagLabel}</h3>
+                    <div class="subtle">${log.note || "No note provided."}</div>
+                    <div class="tag-row">
+                      <span class="tag">${log.tag || "note"}</span>
+                      ${log.createdAt ? `<span class="tag">${log.createdAt.slice(0, 16).replace("T", " ")}</span>` : ""}
+                    </div>
+                  </div>
+                `,
+              )
+              .join("")
+          : `<div class="log-card"><h3>No quick logs.</h3><div class="subtle">Tap Start Shift and add logs during the route.</div></div>`;
+
+        packetOutput.textContent = JSON.stringify(
+          {
+            date: packet.date,
+            platform: packet.platform,
+            zone: packet.zone,
+            coverSheet: packet.cover,
+            session: packet.session,
+            sessionDuration: packet.sessionDuration,
+            breakDuration: packet.breakDuration,
+            orderPackets: packet.orderPackets,
+            buckets: packet.buckets,
+            unassignedEvidence: packet.unassignedEvidence,
+            quickLogs: packet.quickLogs,
+            latestShift: packet.latestShift,
+            weekly: packet.weekly,
+          },
+          null,
+          2,
+        );
+      }
+
+      function copySummary() {
+        const packet = state.packet;
+        const summary = [
+          `${packet.cover?.title || "Violation Response Cover Sheet"}`,
+          `${packet.cover?.orderLabel || "Unassigned order"}`,
+          `${packet.cover?.summary || ""}`,
+          "",
+          `Date: ${packet.date}`,
+          `Platform: ${packet.platform}`,
+          `Zone: ${packet.zone}`,
+          `Session: ${packet.session?.id || "none"} (${packet.sessionDuration || "0m"} work / ${packet.breakDuration || "0m"} break)`,
+          `Order packets: ${packet.orderPackets.length}`,
+          `Unassigned evidence: ${packet.unassignedEvidence.length}`,
+          `Quick logs: ${packet.quickLogs.length}`,
+        ].join("\n");
+        return navigator.clipboard.writeText(summary);
+      }
+
+      function init() {
+        render();
+        printBtn.addEventListener("click", () => window.print());
+        copySummaryBtn.addEventListener("click", copySummary);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

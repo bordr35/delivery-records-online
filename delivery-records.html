@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0b0d0b">
+  <title>Delivery Records</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@500;700;900&family=Barlow:wght@400;500;700&display=swap");
+    :root{--bg:#0b0d0b;--surf:#111411;--surf2:#181d18;--line:#293029;--line2:#374037;--green:#3dff72;--green2:rgba(61,255,114,.13);--blue:#29c9ff;--yellow:#ffc233;--red:#ff4545;--text:#c6d2c6;--muted:#6b746b;--bright:#f0fff0;--mono:"Share Tech Mono",monospace;--cond:"Barlow Condensed",sans-serif;--sans:"Barlow",sans-serif;--r:7px;--sw:218px}
+    *{box-sizing:border-box}html{font-size:14px}body{margin:0;background:radial-gradient(circle at top right,rgba(61,255,114,.08),transparent 38%),var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh}button,input,select,textarea{font:inherit}button{cursor:pointer}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:var(--line2);border-radius:999px}
+    #app{display:flex;min-height:100vh}.side{width:var(--sw);min-width:var(--sw);position:sticky;top:0;height:100vh;background:rgba(17,20,17,.96);border-right:1px solid var(--line);display:flex;flex-direction:column;z-index:10}.brand{padding:18px 14px 14px;border-bottom:1px solid var(--line)}.brand h1{font-family:var(--cond);font-size:23px;letter-spacing:.11em;line-height:.95;color:var(--green);margin:0;text-transform:uppercase}.brand p{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:8px 0 0}.nav-group{padding:8px 0;border-bottom:1px solid var(--line)}.nav-label{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:.16em;text-transform:uppercase;padding:8px 14px 4px}.nav{width:100%;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;gap:9px;text-align:left;padding:9px 14px;border-left:3px solid transparent;font-family:var(--cond);font-size:16px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}.nav:hover{background:var(--surf2);color:var(--bright)}.nav.active{background:var(--green2);border-left-color:var(--green);color:var(--green)}.count{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--green);color:#041006;border-radius:4px;padding:1px 6px}.side-note{margin-top:auto;padding:14px;border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--muted)}
+    .main{min-width:0;flex:1}.top{position:sticky;top:0;z-index:7;display:flex;gap:10px;align-items:center;padding:12px 18px;background:rgba(17,20,17,.94);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}#menu{display:none;background:transparent;border:1px solid var(--line2);border-radius:var(--r);color:var(--text);padding:7px 10px}.title{font-family:var(--cond);font-size:23px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--bright);flex:1}.date-chip{font-family:var(--mono);font-size:10px;color:var(--muted)}.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:var(--r);padding:8px 13px;font-family:var(--cond);font-weight:900;font-size:13px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}.primary{background:var(--green);color:#031007}.ghost{background:transparent;border:1px solid var(--line2);color:var(--text)}.blue{background:var(--blue);color:#001016}.danger{background:transparent;border:1px solid var(--red);color:var(--red)}.btn:hover{filter:brightness(1.13)}.wrap{max-width:980px;padding:20px}.page{display:none}.page.active{display:block}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.stat,.card,.record{background:rgba(17,20,17,.92);border:1px solid var(--line);border-radius:var(--r)}.stat{padding:15px}.stat b{font-family:var(--cond);font-size:34px;line-height:1;color:var(--green)}.stat span{display:block;font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}.rule{border-left:3px solid var(--green);padding:14px 16px;margin:12px 0;font-family:var(--mono);font-size:12px;line-height:1.65}.rule h3{margin:0 0 6px;font-family:var(--cond);font-size:15px;letter-spacing:.11em;color:var(--green);text-transform:uppercase}.rule.blue{border-left-color:var(--blue)}.rule.blue h3{color:var(--blue)}.rule.yellow{border-left-color:var(--yellow)}.rule.yellow h3{color:var(--yellow)}
+    .filename{display:flex;gap:9px;align-items:center;overflow:auto;background:#090b09;border:1px solid var(--line2);border-radius:var(--r);padding:9px 12px;margin-bottom:14px;font-family:var(--mono);color:var(--green)}.filename span:first-child{color:var(--muted);font-size:10px;letter-spacing:.12em;text-transform:uppercase}.card{margin-bottom:14px;overflow:hidden}.card h2{margin:0;padding:12px 14px;background:var(--surf2);border-bottom:1px solid var(--line);font-family:var(--cond);font-size:15px;letter-spacing:.11em;text-transform:uppercase;color:var(--bright)}.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:11px;padding:14px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}.field label{font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}input,select,textarea{width:100%;border:1px solid var(--line);background:#090b09;color:var(--bright);border-radius:var(--r);padding:8px 10px;outline:0;font-family:var(--mono);font-size:13px}textarea{min-height:76px;resize:vertical}input:focus,select:focus,textarea:focus{border-color:var(--green)}.toggle{display:flex;gap:6px;flex-wrap:wrap}.pill{border:1px solid var(--line2);background:transparent;color:var(--muted);border-radius:var(--r);padding:6px 11px;font-family:var(--mono);font-size:12px}.pill.on{border-color:var(--green);background:var(--green2);color:var(--green)}.form-actions{display:flex;gap:10px;flex-wrap:wrap;padding:4px 0 22px}
+    .record{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:11px 13px;margin-bottom:8px}.type{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;background:var(--line2);border-radius:4px;color:var(--muted);padding:3px 7px}.name{font-family:var(--mono);font-size:12px;color:var(--bright);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.stamp{font-family:var(--mono);font-size:10px;color:var(--muted)}.empty{text-align:center;padding:38px 20px;font-family:var(--mono);color:var(--muted);line-height:1.8}.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;padding:18px;z-index:30}.modal-bg.show{display:flex}.modal{width:min(680px,100%);max-height:86vh;overflow:auto;background:var(--surf);border:1px solid var(--line2);border-radius:var(--r)}.modal-head,.modal-foot{display:flex;gap:8px;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line)}.modal-foot{border-top:1px solid var(--line);border-bottom:0;justify-content:flex-end;flex-wrap:wrap}.modal-title{font-family:var(--cond);font-size:18px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;color:var(--bright);flex:1}.export{margin:15px;background:#090b09;border:1px solid var(--line);border-radius:var(--r);padding:14px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;line-height:1.65;color:var(--text)}.toast{position:fixed;right:18px;bottom:18px;z-index:50;background:var(--green);color:#031007;border-radius:var(--r);padding:11px 17px;font-family:var(--mono);font-size:12px;opacity:0;transform:translateY(10px);transition:.2s}.toast.show{opacity:1;transform:translateY(0)}.toast.err{background:var(--red);color:#fff}.overlay{display:none}
+    @media(max-width:760px){.side{position:fixed;left:0;transform:translateX(-100%);transition:.22s}.side.open{transform:translateX(0)}.overlay.show{display:block;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:8}#menu{display:block}.wrap{padding:14px}.date-chip{display:none}.actions .ghost{display:none}.record{grid-template-columns:1fr auto}.type,.stamp{display:none}}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside class="side" id="side">
+      <div class="brand"><h1>Delivery<br>Records</h1><p>Online-ready field manager</p></div>
+      <div class="nav-group">
+        <div class="nav-label">Overview</div>
+        <button class="nav active" data-page="dash">Dashboard</button>
+        <button class="nav" data-page="saved">Saved Records <span class="count" id="nav-count">0</span></button>
+      </div>
+      <div class="nav-group">
+        <div class="nav-label">Forms</div>
+        <button class="nav" data-page="daily">Daily Log</button>
+        <button class="nav" data-page="receipt">Receipt / Invoice</button>
+        <button class="nav" data-page="mileage">Mileage Entry</button>
+        <button class="nav" data-page="expense">Expense Entry</button>
+        <button class="nav" data-page="proof">Proof Note</button>
+        <button class="nav" data-page="dispute">Dispute / Support</button>
+        <button class="nav" data-page="weekly">Weekly Review</button>
+        <button class="nav" data-page="guide">Workflow Guide</button>
+      </div>
+      <div class="side-note">Works from static hosting.<br>Records save in this browser.<br>Use Export Backup before switching devices.</div>
+    </aside>
+    <div class="overlay" id="overlay"></div>
+    <main class="main">
+      <header class="top"><button id="menu">Menu</button><div class="title" id="page-title">Dashboard</div><div class="date-chip" id="today"></div><div class="actions"><button class="btn ghost" data-page-jump="saved">Records</button><button class="btn primary" data-page-jump="daily">+ Daily Log</button></div></header>
+      <div class="wrap" id="pages"></div>
+    </main>
+  </div>
+  <div class="modal-bg" id="modal"><div class="modal"><div class="modal-head"><div class="modal-title" id="modal-title">Export</div><button class="btn ghost" id="modal-close">Close</button></div><div class="export" id="export-box"></div><div class="modal-foot"><button class="btn primary" id="copy-btn">Copy Text</button><button class="btn ghost" id="download-btn">Download .txt</button></div></div></div>
+  <div class="toast" id="toast"></div>
+  <script>
+    const STORE="delivery_records_online_v1";
+    const apps=["","Uber Eats","DoorDash","Grubhub","Instacart","Spark","Roadie","Amazon Flex","Other"];
+    const money=v=>v?`$${v}`:"";
+    const todayIso=()=>new Date().toISOString().slice(0,10);
+    const clean=s=>String(s||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,24);
+    const appCode=s=>({ "Uber Eats":"ue",DoorDash:"dd",Grubhub:"gh",Instacart:"ic",Spark:"spark","Amazon Flex":"flex",Roadie:"roadie",Other:"other" }[s]||clean(s)||"app");
+    const field=(id,label,type="text",extra="")=>`<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" ${extra}></div>`;
+    const textarea=(id,label)=>`<div class="field full"><label for="${id}">${label}</label><textarea id="${id}"></textarea></div>`;
+    const select=(id,label,opts=apps)=>`<div class="field"><label for="${id}">${label}</label><select id="${id}">${opts.map(o=>`<option>${o}</option>`).join("")}</select></div>`;
+    const toggle=(id,label,opts=["Yes","No"])=>`<div class="field"><label>${label}</label><div class="toggle" data-id="${id}">${opts.map(o=>`<button class="pill" type="button" data-val="${o}">${o}</button>`).join("")}</div></div>`;
+    const section=(title,body)=>`<section class="card"><h2>${title}</h2><div class="fields">${body}</div></section>`;
+    const forms={
+      daily:{title:"Daily Log",folder:"01_Daily_Logs",fn:()=>`${val("dl-date")||todayIso()}_${appCode(val("dl-app"))}_${clean(val("dl-zone"))||"zone"}_dailylog`,html:()=>`
+        <div class="filename"><span>Filename:</span><b id="fn-daily"></b></div>
+        ${section("Shift Info",field("dl-date","Date","date")+select("dl-app","App")+field("dl-zone","Zone")+field("dl-start","Start Time","time")+field("dl-end","End Time","time")+field("dl-online","Online Time")+field("dl-active","Active Time")+field("dl-deliveries","Delivery Count","number","min='0'"))}
+        ${section("Mileage & Costs",field("dl-odo-start","Start Odometer","number")+field("dl-odo-end","End Odometer","number")+field("dl-miles","Miles Driven","number")+field("dl-gas","Gas","number","step='0.01'")+field("dl-tolls","Tolls","number","step='0.01'")+field("dl-parking","Parking","number","step='0.01'")+field("dl-other-exp","Other Expense","number","step='0.01'")+field("dl-other-note","Other Expense Note"))}
+        ${section("Earnings",field("dl-base","Base Pay","number","step='0.01'")+field("dl-tips","Tips","number","step='0.01'")+field("dl-bonus","Bonus / Promo","number","step='0.01'")+field("dl-adjust","Adjustment","number","step='0.01'")+field("dl-cash","Cash Collected","number","step='0.01'")+field("dl-total","Total Earnings","number","step='0.01'")+select("dl-payout","Payout Method",["","Instant deposit","Weekly deposit","Stripe","Direct deposit","Other"])+toggle("dl-pay-ss","Payout Screenshot Saved"))}
+        ${section("Proof Check",toggle("dl-order-screen","Order Screen Saved")+toggle("dl-pickup","Pickup Proof Saved")+toggle("dl-dropoff","Dropoff Proof Saved")+toggle("dl-payout-proof","Payout Screenshot Saved"))}
+        ${section("Issues & Review",field("dl-orders","Important Order Numbers")+field("dl-merchants","Merchants with Issues")+field("dl-case","Case Number")+toggle("dl-support","Support Contacted")+toggle("dl-safety","Safety Concern")+textarea("dl-issues","Issue Notes")+field("dl-made-money","What Made Money")+field("dl-wasted","What Wasted Time")+field("dl-remember","Remember Next Time"))}`},
+      receipt:{title:"Receipt / Invoice",folder:"02_Receipts_Invoices",fn:()=>`${val("rc-date")||todayIso()}_${appCode(val("rc-app"))}_${clean(val("rc-zone"))||"zone"}_${clean(val("rc-merch"))||"merchant"}_receipt`,html:()=>`
+        <div class="filename"><span>Filename:</span><b id="fn-receipt"></b></div>
+        ${section("Receipt Details",field("rc-date","Date","date")+field("rc-merch","Merchant / Sender")+select("rc-app","App")+field("rc-zone","Zone")+toggle("rc-type","Type",["Receipt","Invoice","Bill","Estimate"])+field("rc-amount","Amount","number","step='0.01'")+field("rc-payment","Payment Method")+toggle("rc-tax","Tax-Related",["Yes","No","Maybe"])+field("rc-folder","Saved to Folder"))}
+        ${section("Line Item & Links",field("rc-item","Item or Service")+field("rc-sub","Subtotal","number","step='0.01'")+field("rc-tax-amt","Tax","number","step='0.01'")+field("rc-tip","Tip","number","step='0.01'")+field("rc-total","Total","number","step='0.01'")+field("rc-order","Order Number")+toggle("rc-ss","Screenshot / PDF Saved")+field("rc-link","Linked Daily Log")+textarea("rc-notes","Notes"))}`},
+      mileage:{title:"Mileage Entry",folder:"06_Mileage_Expenses",fn:()=>`${val("ml-date")||todayIso()}_${appCode(val("ml-app"))}_${clean(val("ml-zone"))||"zone"}_mileage`,html:()=>`
+        <div class="filename"><span>Log file:</span><b>06_Mileage_Expenses / mileage_log.txt</b></div>
+        ${section("Mileage Entry",field("ml-date","Date","date")+select("ml-app","App")+field("ml-zone","Zone")+field("ml-odo-start","Start Odometer","number")+field("ml-odo-end","End Odometer","number")+field("ml-miles","Miles Driven","number")+field("ml-reason","Reason / Shift Note")+field("ml-link","Linked Daily Log"))}`},
+      expense:{title:"Expense Entry",folder:"06_Mileage_Expenses",fn:()=>`${val("ex-date")||todayIso()}_${clean(val("ex-merch"))||"merchant"}_expense`,html:()=>`
+        <div class="filename"><span>Log file:</span><b>06_Mileage_Expenses / expense_log.txt</b></div>
+        ${section("Expense Entry",field("ex-date","Date","date")+select("ex-type","Type",["","Gas / Fuel","Vehicle maintenance","Phone / Service","Supplies","Food during shift","Parking","Tolls","Insurance","Other"])+field("ex-merch","Merchant")+field("ex-amount","Amount","number","step='0.01'")+field("ex-payment","Payment Method")+toggle("ex-tax","Tax-Related",["Yes","No","Maybe"])+field("ex-receipt","Receipt File")+field("ex-reason","Business Reason")+textarea("ex-notes","Notes"))}`},
+      proof:{title:"Proof Note",folder:"03_Proof_Photos",fn:()=>`${val("pf-date")||todayIso()}_${appCode(val("pf-app"))}_${clean(val("pf-zone"))||"zone"}_dropoffproof`,html:()=>`
+        <div class="filename"><span>Filename:</span><b id="fn-proof"></b></div>
+        ${section("Proof Photo Note",field("pf-date","Date","date")+select("pf-app","App")+field("pf-zone","Zone")+field("pf-order","Order Number")+field("pf-merch","Merchant")+field("pf-cust","Customer Tag")+toggle("pf-pickup","Pickup Proof Saved")+toggle("pf-dropoff","Dropoff Proof Saved")+toggle("pf-addr","Address Visible")+toggle("pf-ts","Timestamp Visible")+field("pf-link","Linked Support Issue")+textarea("pf-notes","Notes"))}`},
+      dispute:{title:"Dispute / Support",folder:"04_Disputes_Support",fn:()=>`${val("ds-date")||todayIso()}_${appCode(val("ds-app"))}_${clean(val("ds-zone"))||"zone"}_support_issue`,html:()=>`
+        <div class="filename"><span>Filename:</span><b id="fn-dispute"></b></div>
+        ${section("Support Issue",field("ds-date","Date","date")+select("ds-app","App")+field("ds-zone","Zone")+field("ds-order","Order Number")+field("ds-merch","Merchant")+field("ds-cust","Customer Tag")+toggle("ds-type","Issue Type",["Missing Pay","Wrong Pay","Customer Claim","Merchant Issue","App Bug","Safety","Other"])+textarea("ds-what","What Happened")+field("ds-time","Time Issue Started","time")+toggle("ds-contacted","Support Contacted")+toggle("ds-method","Support Method",["Chat","Phone","Email"])+field("ds-rep","Support Rep")+field("ds-case","Case Number")+field("ds-money","Money at Stake","number","step='0.01'")+toggle("ds-proof","Proof Saved")+toggle("ds-followup","Need Follow-Up")+field("ds-request","Requested Outcome")+field("ds-outcome","Actual Outcome")+textarea("ds-notes","Notes"))}`},
+      weekly:{title:"Weekly Review",folder:"05_Weekly_Reviews",fn:()=>{const d=val("wk-date");if(!d)return"YYYY-W##_weeklyreview";const x=new Date(`${d}T00:00:00`);const y=new Date(Date.UTC(x.getFullYear(),x.getMonth(),x.getDate()));y.setUTCDate(y.getUTCDate()+4-(y.getUTCDay()||7));const w=Math.ceil((((y-new Date(Date.UTC(y.getUTCFullYear(),0,1)))/86400000)+1)/7);return `${y.getUTCFullYear()}-W${String(w).padStart(2,"0")}_weeklyreview`},html:()=>`
+        <div class="filename"><span>Filename:</span><b id="fn-weekly"></b></div>
+        ${section("Week Overview",field("wk-date","Week Of","date")+field("wk-apps","Apps Used")+field("wk-zones","Main Zones")+field("wk-days","Days Worked","number","min='0' max='7'"))}
+        ${section("Totals",field("wk-earn","Total Earnings","number","step='0.01'")+field("wk-miles","Total Miles","number")+field("wk-gas","Gas","number","step='0.01'")+field("wk-tolls","Tolls","number","step='0.01'")+field("wk-parking","Parking","number","step='0.01'")+field("wk-other","Other Expenses","number","step='0.01'")+field("wk-net","Net Before Taxes","number","step='0.01'")+field("wk-adjust","Adjustments / Missing Pay"))}
+        ${section("Patterns & Next Week",field("wk-best-app","Best App")+field("wk-best-zone","Best Zone")+field("wk-best-time","Best Time")+field("wk-worst-time","Worst Time")+field("wk-slow","Slow Merchants")+field("wk-avoid","Zones To Avoid")+textarea("wk-notes","Notes For Later Analysis")+field("wk-keep","Keep Doing")+field("wk-less","Do Less Of")+field("wk-watch","Watch Out For")+field("wk-fix","Fix Next Week"))}`},
+    };
+    const pages=document.getElementById("pages");
+    pages.innerHTML=`
+      <section class="page active" id="page-dash">
+        <div class="grid"><div class="stat"><span>Total Records</span><b id="s-total">0</b></div><div class="stat"><span>Daily Logs</span><b id="s-daily">0</b></div><div class="stat"><span>Receipts</span><b id="s-receipt">0</b></div><div class="stat"><span>Weekly Reviews</span><b id="s-weekly">0</b></div></div>
+        <div class="rule"><h3>Core Save Rule</h3>If it affects money, taxes, proof, disputes, mileage, or safety, save it. If you are not sure, save it.</div>
+        <div class="rule blue"><h3>Online Setup</h3>This page is a static web app. Host this folder on Netlify, Vercel, or GitHub Pages and it will stay available even when your computer is off.</div>
+        <div class="rule yellow"><h3>Before Your Shift</h3>Open Daily Log, fill the basics, save at the end, then export a backup when you are done.</div>
+      </section>
+      <section class="page" id="page-saved"><div class="form-actions"><button class="btn primary" id="backup-btn">Export Backup JSON</button><label class="btn ghost">Import Backup JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button class="btn danger" id="clear-all">Clear All</button></div><div id="saved-list"></div></section>
+      ${Object.entries(forms).map(([k,f])=>`<section class="page" id="page-${k}">${f.html()}<div class="form-actions"><button class="btn primary" data-save="${k}">Save Record</button><button class="btn ghost" data-preview="${k}">Preview</button><button class="btn ghost" data-clear="${k}">Clear</button></div></section>`).join("")}
+      <section class="page" id="page-guide"><div class="rule"><h3>1. Capture Right Away</h3>Save order screens, payout screens, merchant issues, support chats, receipts, and anything tied to money or proof.</div><div class="rule blue"><h3>2. Sort Folders</h3>01_Daily_Logs, 02_Receipts_Invoices, 03_Proof_Photos, 04_Disputes_Support, 05_Weekly_Reviews, 06_Mileage_Expenses, 07_Archive.</div><div class="rule yellow"><h3>3. Export Backups</h3>Because this static version saves privately in your browser, export a backup before clearing browser data or switching devices.</div></section>`;
+    function val(id){return document.getElementById(id)?.value.trim()||""}
+    function tog(id){return document.querySelector(`.toggle[data-id="${id}"] .pill.on`)?.dataset.val||""}
+    function recs(){try{return JSON.parse(localStorage.getItem(STORE)||"[]")}catch{return[]}}
+    function saveRecs(r){localStorage.setItem(STORE,JSON.stringify(r))}
+    function allInputs(page){return [...document.querySelectorAll(`#page-${page} input,#page-${page} select,#page-${page} textarea`)]}
+    function setDates(){document.querySelectorAll('input[type="date"]').forEach(x=>{if(!x.value)x.value=todayIso()})}
+    function updateNames(){Object.entries(forms).forEach(([k,f])=>{const el=document.getElementById(`fn-${k}`);if(el)el.textContent=f.fn()})}
+    function num(id){const n=Number(val(id));return Number.isFinite(n)?n:0}
+    function put(id,value){const el=document.getElementById(id);if(el&&!el.value&&value>0)el.value=String(Number(value.toFixed(2)))}
+    function autoCalc(){
+      put("dl-miles",num("dl-odo-end")-num("dl-odo-start"));
+      put("ml-miles",num("ml-odo-end")-num("ml-odo-start"));
+      put("dl-total",num("dl-base")+num("dl-tips")+num("dl-bonus")+num("dl-adjust"));
+      put("rc-total",num("rc-sub")+num("rc-tax-amt")+num("rc-tip"));
+      put("wk-net",num("wk-earn")-num("wk-gas")-num("wk-tolls")-num("wk-parking")-num("wk-other"));
+    }
+    function exportText(form){
+      const f=forms[form], lines=[`${f.title.toUpperCase()}`,"=".repeat(50),`File name: ${f.fn()}.txt`,`Folder: ${f.folder}`,""];
+      document.querySelectorAll(`#page-${form} .field`).forEach(row=>{
+        const label=row.querySelector("label")?.textContent?.trim();
+        const control=row.querySelector("input,select,textarea");
+        const tv=row.querySelector(".toggle")?.dataset.id;
+        if(label)lines.push(`${label}: ${control?control.value.trim():tog(tv)}`);
+      });
+      return {filename:`${f.fn()}.txt`,text:lines.join("\n")};
+    }
+    function show(page){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(`page-${page}`)?.classList.add("active");document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.page===page));document.getElementById("page-title").textContent=forms[page]?.title||({dash:"Dashboard",saved:"Saved Records",guide:"Workflow Guide"}[page]||page);document.getElementById("side").classList.remove("open");document.getElementById("overlay").classList.remove("show");if(page==="saved")renderSaved();updateNames();scrollTo(0,0)}
+    function stats(){const r=recs();document.getElementById("nav-count").textContent=r.length;document.getElementById("s-total").textContent=r.length;document.getElementById("s-daily").textContent=r.filter(x=>x.form==="daily").length;document.getElementById("s-receipt").textContent=r.filter(x=>x.form==="receipt").length;document.getElementById("s-weekly").textContent=r.filter(x=>x.form==="weekly").length}
+    function renderSaved(){const r=recs();stats();document.getElementById("saved-list").innerHTML=r.length?r.map(x=>`<div class="record"><span class="type">${forms[x.form]?.title||x.form}</span><span class="name">${x.filename}</span><span class="stamp">${new Date(x.saved).toLocaleString()}</span><span><button class="btn ghost" data-view="${x.id}">View</button> <button class="btn ghost" data-down="${x.id}">Download</button> <button class="btn danger" data-del="${x.id}">Delete</button></span></div>`).join(""):`<div class="empty">No records yet.<br>Fill out a form and hit Save Record.</div>`}
+    let cur={filename:"record.txt",text:""};
+    function openExport(exp){cur=exp;document.getElementById("modal-title").textContent=exp.filename;document.getElementById("export-box").textContent=exp.text;document.getElementById("modal").classList.add("show")}
+    function download(name,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/plain"}));a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+    function toast(msg,type=""){const t=document.getElementById("toast");t.textContent=msg;t.className=`toast show ${type}`;clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.className="toast",2600)}
+    document.addEventListener("click",e=>{
+      const nav=e.target.closest("[data-page],[data-page-jump]");if(nav)show(nav.dataset.page||nav.dataset.pageJump);
+      const pill=e.target.closest(".pill");if(pill){pill.parentElement.querySelectorAll(".pill").forEach(p=>p.classList.remove("on"));pill.classList.add("on")}
+      const s=e.target.closest("[data-save]");if(s){autoCalc();const exp=exportText(s.dataset.save);const useful=allInputs(s.dataset.save).some(x=>x.type!=="date"&&x.value.trim())||document.querySelector(`#page-${s.dataset.save} .pill.on`);if(!useful)return toast("Fill in at least one non-date field first","err");const r=recs();r.unshift({id:Date.now(),form:s.dataset.save,filename:exp.filename,text:exp.text,saved:new Date().toISOString()});saveRecs(r);stats();toast(`Saved ${exp.filename}`)}
+      const p=e.target.closest("[data-preview]");if(p)openExport(exportText(p.dataset.preview));
+      const c=e.target.closest("[data-clear]");if(c&&confirm("Clear this form?")){allInputs(c.dataset.clear).forEach(x=>x.value=x.type==="date"?todayIso():"");document.querySelectorAll(`#page-${c.dataset.clear} .pill`).forEach(x=>x.classList.remove("on"));updateNames();toast("Form cleared")}
+      const v=e.target.closest("[data-view]");if(v){const r=recs().find(x=>x.id==v.dataset.view);if(r)openExport(r)}
+      const d=e.target.closest("[data-down]");if(d){const r=recs().find(x=>x.id==d.dataset.down);if(r)download(r.filename,r.text)}
+      const del=e.target.closest("[data-del]");if(del&&confirm("Delete this record?")){saveRecs(recs().filter(x=>x.id!=del.dataset.del));renderSaved();toast("Record deleted")}
+    });
+    document.addEventListener("input",()=>{autoCalc();updateNames()});
+    document.getElementById("menu").onclick=()=>{document.getElementById("side").classList.add("open");document.getElementById("overlay").classList.add("show")};
+    document.getElementById("overlay").onclick=()=>{document.getElementById("side").classList.remove("open");document.getElementById("overlay").classList.remove("show")};
+    document.getElementById("modal-close").onclick=()=>document.getElementById("modal").classList.remove("show");
+    document.getElementById("modal").onclick=e=>{if(e.target.id==="modal")document.getElementById("modal").classList.remove("show")};
+    document.getElementById("copy-btn").onclick=()=>navigator.clipboard.writeText(cur.text).then(()=>toast("Copied"));
+    document.getElementById("download-btn").onclick=()=>download(cur.filename,cur.text);
+    document.getElementById("backup-btn").onclick=()=>download(`delivery-records-backup-${todayIso()}.json`,JSON.stringify({version:1,exported:new Date().toISOString(),records:recs()},null,2));
+    document.getElementById("import-file").onchange=e=>{const file=e.target.files[0];if(!file)return;file.text().then(txt=>{const data=JSON.parse(txt);if(!Array.isArray(data.records))throw new Error("Bad backup");saveRecs(data.records);renderSaved();toast("Backup imported")}).catch(()=>toast("Could not import backup","err"))};
+    document.getElementById("clear-all").onclick=()=>{if(confirm("Delete ALL saved records in this browser?")){localStorage.removeItem(STORE);renderSaved();stats();toast("All records cleared","err")}};
+    document.getElementById("today").textContent=new Date().toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+    if("serviceWorker" in navigator)navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    setDates();autoCalc();updateNames();stats();
+  </script>
+</body>
+</html>
