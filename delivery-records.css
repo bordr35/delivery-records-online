@@ -225,6 +225,19 @@ input:focus, select:focus, textarea:focus { border-color: var(--green); box-shad
 .quick-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: rgba(0,0,0,.14); }
 .quick-card h4 { margin: 0 0 8px; color: var(--bright); font-family: var(--cond); font-size: 19px; letter-spacing: .06em; text-transform: uppercase; }
 .quick-card p { margin: 0 0 12px; color: var(--muted); line-height: 1.45; }
+.case-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.case-step { border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; background: rgba(0,0,0,.16); }
+.case-step b { display: block; color: var(--green); font-family: var(--cond); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
+.case-step span { color: var(--muted); line-height: 1.45; }
+.upload-box { display: block; border: 1px dashed var(--line-2); border-radius: var(--radius); padding: 16px; background: rgba(0,0,0,.18); }
+.upload-box input { margin-top: 10px; padding: 12px; }
+.proof-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
+.proof-card { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: rgba(0,0,0,.18); }
+.proof-card img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #020402; }
+.proof-card-body { padding: 10px; display: grid; gap: 8px; }
+.proof-card-title { color: var(--bright); font-family: var(--mono); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.proof-card textarea { min-height: 72px; font-size: 12px; }
+.proof-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .filters { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(130px, 180px) minmax(130px, 180px); gap: 9px; margin-bottom: 12px; }
 .record { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px; margin-bottom: 8px; }

@@ -1,7 +1,8 @@
-const APP_VERSION = "2.0.1";
+const APP_VERSION = "2.1.0";
 const STORE = "delivery_records_online_v2";
 const LEGACY_STORE = "delivery_records_online_v1";
 const DRAFTS = "delivery_records_drafts_v2";
+const PROOFS = "delivery_records_proof_shots_v1";
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
@@ -23,6 +24,7 @@ const todayIso = () => new Date().toISOString().slice(0, 10);
 const fmtDate = value => value ? new Date(`${value}T00:00:00`).toLocaleDateString() : "";
 const fmtDateTime = value => value ? new Date(value).toLocaleString() : "";
 const slug = value => String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 34);
+const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[char]));
 const appCode = value => ({
   "Uber Eats": "ue",
   DoorDash: "dd",
@@ -151,6 +153,13 @@ function drafts() {
 }
 function saveDrafts(value) {
   localStorage.setItem(DRAFTS, JSON.stringify(value));
+}
+function proofShots() {
+  const shots = safeJson(localStorage.getItem(PROOFS), []);
+  return Array.isArray(shots) ? shots : [];
+}
+function saveProofShots(value) {
+  localStorage.setItem(PROOFS, JSON.stringify(value));
 }
 function getRecord(id) {
   return rawRecords().find(record => String(record.id) === String(id));
@@ -323,7 +332,7 @@ function renderQuick() {
       <div class="panel-body quick-grid">
         ${quickCard("Merchant Delay", "Log wait time, merchant, order, and whether support was contacted.", "delay")}
         ${quickCard("Missing / Wrong Pay", "Start a dispute record with money at stake and requested outcome.", "pay")}
-        ${quickCard("Dropoff Proof", "Create a proof note for address/timestamp/dropoff evidence.", "proof")}
+        ${quickCard("Dropoff Proof", "Open the proof-shot vault and add a screenshot/photo.", "proofshot")}
         ${quickCard("Safety / Access Issue", "Capture safety, gate, building, or customer-access issue fast.", "safety")}
       </div>
     </section>
@@ -358,10 +367,23 @@ function renderRecords() {
 }
 function renderPacket() {
   return `
-    <div class="rule red"><h3>Violation Response Packet</h3>This is the human-readable appeal file. Fill the basics, then preview/copy/download. It includes your saved dispute, proof, daily, receipt, mileage, and expense records.</div>
+    <div class="rule red"><h3>Guided Violation Case Builder</h3>This is the human-readable appeal file. Fill the basics, add proof shots, then preview/copy/download. It includes saved records and your proof-shot inventory.</div>
+    <section class="case-steps">
+      <div class="case-step"><b>1. Claim</b><span>Write what the app/platform says happened.</span></div>
+      <div class="case-step"><b>2. Facts</b><span>Write what actually happened in plain English.</span></div>
+      <div class="case-step"><b>3. Proof</b><span>Add normal screenshots/photos and label what each one proves.</span></div>
+      <div class="case-step"><b>4. Ask</b><span>State the correction you want: pay, account standing, or review.</span></div>
+    </section>
     ${panel("Appeal Basics", "Keep this direct and factual.", field("vp-date","Packet Date","date")+select("vp-app","Platform")+field("vp-case","Case / Ticket Number")+field("vp-order","Order ID(s)")+select("vp-type","Violation / Issue Type",issueTypes)+field("vp-money","Money At Stake","number","step='0.01'")+field("vp-request","Requested Outcome"))}
     ${panel("Plain-English Response", "Write it like a human support reviewer has sixty seconds.", textarea("vp-accused","What They Say Happened")+textarea("vp-response","Your Response / What Actually Happened")+textarea("vp-proof","Proof You Have")+textarea("vp-extra","Anything Else Support Should Know"))}
+    ${renderProofUploader("Proof Shots For This Packet", "Use your normal screenshots/photos. On mobile this can open camera or photo library; the app compresses shots and keeps them in this browser.")}
     <div class="form-actions"><button class="btn primary" type="button" id="packet-preview">Preview Packet</button><button class="btn ghost" type="button" id="packet-copy">Copy Appeal Text</button><button class="btn ghost" type="button" id="packet-download">Download Packet .txt</button></div>`;
+}
+function renderProofVault() {
+  return `
+    <div class="rule"><h3>Proof Shots</h3>Use this for normal screenshots, dropoff photos, payout screenshots, support chats, and receipt images. Add a note that says what each image proves.</div>
+    ${renderProofUploader("Add Proof Shots", "Tip: save only the useful shots. Browser storage is private but limited, so export/download anything critical.")}
+    ${renderProofLibrary()}`;
 }
 function renderBackup() {
   return `
@@ -385,6 +407,40 @@ function renderGuide() {
     <div class="rule yellow"><h3>3. End-of-shift habit</h3>Save Daily Log, export any important records, and download a device backup if the day involved money or account risk.</div>
     <div class="rule red"><h3>4. Privacy boundary</h3>This static app does not upload your records to a database. That is intentional until you decide you want authenticated cloud sync.</div>`;
 }
+function renderProofUploader(title, description) {
+  return `
+    <section class="panel">
+      <div class="panel-head"><div><h3>${title}</h3><p>${description}</p></div></div>
+      <div class="panel-body">
+        <label class="upload-box">
+          <strong>Add screenshots/photos</strong>
+          <p class="record-meta">Images are compressed before saving locally. They are not uploaded to a server by this static app.</p>
+          <input id="proof-files" type="file" accept="image/*" capture="environment" multiple>
+        </label>
+        <div class="proof-library">${renderProofCards()}</div>
+      </div>
+    </section>`;
+}
+function renderProofLibrary() {
+  return `<section class="panel"><div class="panel-head"><div><h3>Proof Library</h3><p>Everything currently saved in this browser.</p></div></div><div class="panel-body proof-library">${renderProofCards()}</div></section>`;
+}
+function renderProofCards() {
+  const shots = proofShots();
+  if (!shots.length) return `<div class="empty"><strong>No proof shots yet.</strong><span>Add screenshots/photos when there is money, safety, proof, or account risk.</span></div>`;
+  return `<div class="proof-grid">${shots.map(shot => `
+    <article class="proof-card">
+      <img src="${esc(shot.dataUrl)}" alt="${esc(shot.name)}">
+      <div class="proof-card-body">
+        <div class="proof-card-title">${esc(shot.name)}</div>
+        <div class="record-meta">${fmtDateTime(shot.createdAt)} · ${((shot.originalSize || 0) / 1024).toFixed(0)} KB original</div>
+        <textarea data-proof-note="${esc(shot.id)}" placeholder="What does this image prove?">${esc(shot.note || "")}</textarea>
+        <div class="proof-actions">
+          <button class="btn ghost small" type="button" data-proof-download="${esc(shot.id)}">Download</button>
+          <button class="btn danger small" type="button" data-proof-delete="${esc(shot.id)}">Delete</button>
+        </div>
+      </div>
+    </article>`).join("")}</div>`;
+}
 function renderRecentRecords(records, title) {
   return `<section class="panel"><div class="panel-head"><div><h3>${title}</h3><p>${records.length ? "Most recent saved evidence." : "Nothing saved yet."}</p></div></div><div class="panel-body">${records.length ? records.map(recordMarkup).join("") : `<div class="empty"><strong>No records yet.</strong><span>Use Quick Capture or Daily Log to start.</span></div>`}</div></section>`;
 }
@@ -392,15 +448,15 @@ function recordMarkup(record) {
   const def = formDefs[record.type];
   return `
     <article class="record">
-      <span class="record-type">${def?.label || titleCase(record.type)}</span>
+      <span class="record-type">${esc(def?.label || titleCase(record.type))}</span>
       <div>
-        <div class="record-title">${record.filename}</div>
-        <div class="record-meta">${fmtDateTime(record.createdAt)} · ${record.folder || "Records"}${record.status === "follow-up" ? " · Follow-up" : ""}</div>
+        <div class="record-title">${esc(record.filename)}</div>
+        <div class="record-meta">${fmtDateTime(record.createdAt)} · ${esc(record.folder || "Records")}${record.status === "follow-up" ? " · Follow-up" : ""}</div>
       </div>
       <div class="record-actions">
-        <button class="btn ghost small" type="button" data-view="${record.id}">View</button>
-        <button class="btn ghost small" type="button" data-download="${record.id}">TXT</button>
-        <button class="btn danger small" type="button" data-delete="${record.id}">Delete</button>
+        <button class="btn ghost small" type="button" data-view="${esc(record.id)}">View</button>
+        <button class="btn ghost small" type="button" data-download="${esc(record.id)}">TXT</button>
+        <button class="btn danger small" type="button" data-delete="${esc(record.id)}">Delete</button>
       </div>
     </article>`;
 }
@@ -421,6 +477,7 @@ function renderRecordList() {
 function buildViolationPacket() {
   const data = collectPacketData();
   const records = rawRecords().filter(record => ["dispute","proof","daily","receipt","mileage","expense"].includes(record.type));
+  const shots = proofShots();
   const type = data["vp-type"] || "Delivery platform violation / support issue";
   const app = data["vp-app"] || "Delivery platform";
   const requested = data["vp-request"] || "Please review the attached evidence, correct the record, and restore/confirm my standing and pay as appropriate.";
@@ -461,6 +518,10 @@ function buildViolationPacket() {
     "[ ] Receipt / expense proof saved if relevant",
     "[ ] Mileage / shift log saved if relevant",
     "",
+    "PROOF SHOTS SAVED IN THIS APP",
+    "-".repeat(64),
+    shots.length ? "" : "No proof shots saved in the app yet.",
+    ...shots.flatMap((shot, index) => [`${index + 1}. ${shot.name}`, `Saved: ${fmtDateTime(shot.createdAt)}`, `Note: ${shot.note || "No note added yet."}`, ""]),
     "SAVED RECORD TIMELINE",
     "-".repeat(64),
     records.length ? "" : "No saved records are attached yet. Save a Dispute / Support record and any Proof Notes before sending this packet.",
@@ -482,6 +543,7 @@ function renderPage(page) {
   if (page === "quick") return renderQuick();
   if (page === "records") return renderRecords();
   if (page === "packet") return renderPacket();
+  if (page === "proofshots") return renderProofVault();
   if (page === "backup") return renderBackup();
   if (page === "guide") return renderGuide();
   if (formDefs[page]) return renderFormPage(page);
@@ -494,7 +556,7 @@ function show(page) {
   currentPage = page;
   $("#pages").innerHTML = `<section class="page active" id="page-${page}">${renderPage(page)}</section>`;
   $$(".nav").forEach(btn => btn.classList.toggle("active", btn.dataset.page === page));
-  $("#page-title").textContent = formDefs[page]?.label || ({ dashboard: "Dashboard", quick: "Quick Capture", records: "Records", packet: "Violation Packet", backup: "Backup / Restore", guide: "Guide" }[page] || "Dashboard");
+  $("#page-title").textContent = formDefs[page]?.label || ({ dashboard: "Dashboard", quick: "Quick Capture", records: "Records", packet: "Violation Packet", proofshots: "Proof Shots", backup: "Backup / Restore", guide: "Guide" }[page] || "Dashboard");
   closeSidebar();
   hydratePage(page);
   updateAll(false);
@@ -626,15 +688,30 @@ function bindPageControls() {
       exportAllText();
     };
   });
+  $$("[data-proof-download]").forEach(btn => {
+    btn.onclick = event => {
+      event.preventDefault();
+      const shot = proofShots().find(item => item.id === btn.dataset.proofDownload);
+      if (shot) downloadDataUrl(shot.name.replace(/\.[a-z0-9]+$/i, "") + ".jpg", shot.dataUrl);
+    };
+  });
+  $$("[data-proof-delete]").forEach(btn => {
+    btn.onclick = event => {
+      event.preventDefault();
+      if (!confirm("Delete this proof shot from browser storage?")) return;
+      saveProofShots(proofShots().filter(item => item.id !== btn.dataset.proofDelete));
+      refreshProofLibrary();
+      toast("Proof shot deleted.");
+    };
+  });
 }
 
 function quickCapture(kind) {
   const now = new Date();
   const date = todayIso();
-  if (kind === "proof") {
-    show("proof");
-    fillForm("proof", { "pf-date": date, "pf-dropoff": "Yes", "pf-ts": "Yes", "pf-notes": `Quick proof note started at ${now.toLocaleTimeString()}.` });
-    toast("Proof note ready. Add order/merchant, then save.");
+  if (kind === "proofshot") {
+    show("proofshots");
+    toast("Proof vault open. Add the screenshot/photo, then write what it proves.");
     return;
   }
   show("dispute");
@@ -651,6 +728,67 @@ function exportAllText() {
   const text = records.length ? records.map(record => record.text).join("\n\n" + "=".repeat(72) + "\n\n") : "No records saved.";
   download(`delivery-records-human-readable-${todayIso()}.txt`, text);
   toast("Human-readable records exported.");
+}
+function refreshProofLibrary() {
+  $$(".proof-library").forEach(el => {
+    el.innerHTML = renderProofCards();
+  });
+  bindPageControls();
+}
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read image"));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => resolve(reader.result);
+      image.onload = () => {
+        const max = 1600;
+        const scale = Math.min(1, max / Math.max(image.width, image.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function addProofFiles(files) {
+  const incoming = [...files].filter(file => file.type.startsWith("image/"));
+  if (!incoming.length) return;
+  const existing = proofShots();
+  const additions = [];
+  for (const file of incoming) {
+    const dataUrl = await resizeImageFile(file);
+    additions.push({
+      id: crypto.randomUUID(),
+      name: file.name || `proof-shot-${new Date().toISOString()}.jpg`,
+      type: "image/jpeg",
+      originalSize: file.size || 0,
+      createdAt: new Date().toISOString(),
+      note: "",
+      dataUrl
+    });
+  }
+  try {
+    saveProofShots([...additions, ...existing]);
+    refreshProofLibrary();
+    toast(`${additions.length} proof shot${additions.length === 1 ? "" : "s"} saved.`);
+  } catch {
+    toast("Browser storage is full. Download/delete older proof shots, then try again.", "err");
+  }
+}
+function downloadDataUrl(name, dataUrl) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 document.addEventListener("click", event => {
@@ -719,9 +857,17 @@ document.addEventListener("input", event => {
   updateFilenames();
   if (formDefs[formPage]) saveDraft(formPage);
   if (["record-search", "record-type-filter", "record-status-filter"].includes(event.target.id)) renderRecordList();
+  if (event.target.matches("[data-proof-note]")) {
+    saveProofShots(proofShots().map(shot => shot.id === event.target.dataset.proofNote ? { ...shot, note: event.target.value } : shot));
+  }
 });
 document.addEventListener("change", event => {
   if (["record-type-filter", "record-status-filter"].includes(event.target.id)) renderRecordList();
+  if (event.target.id === "proof-files") {
+    addProofFiles(event.target.files).finally(() => {
+      event.target.value = "";
+    });
+  }
 });
 
 window.addEventListener("hashchange", () => {
