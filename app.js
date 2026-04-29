@@ -1786,63 +1786,6 @@ async function collectDroppedFiles(event) {
   return Array.from(event.dataTransfer?.files || []);
 }
 
-async function walkFileEntry(entry, prefix = "") {
-  if (!entry) return [];
-  if (entry.isFile) {
-    return new Promise((resolve) => {
-      entry.file((file) => {
-        file.foodGigRelativePath = prefix || file.name;
-        resolve([file]);
-      });
-    });
-  }
-
-  if (entry.isDirectory) {
-    return new Promise((resolve) => {
-      const reader = entry.createReader();
-      const collected = [];
-
-      const readBatch = () => {
-        reader.readEntries(async (entries) => {
-          if (!entries.length) {
-            resolve(collected);
-            return;
-          }
-
-          for (const child of entries) {
-            const nextPath = prefix ? `${prefix}/${child.name}` : child.name;
-            const nested = await walkFileEntry(child, nextPath);
-            collected.push(...nested);
-          }
-
-          readBatch();
-        });
-      };
-
-      readBatch();
-    });
-  }
-
-  return [];
-}
-
-async function collectDroppedFiles(event) {
-  const transferItems = Array.from(event.dataTransfer?.items || []);
-  const hasEntries = transferItems.some((item) => typeof item.webkitGetAsEntry === "function");
-
-  if (hasEntries) {
-    const collected = [];
-    for (const item of transferItems) {
-      const entry = item.webkitGetAsEntry?.();
-      if (!entry) continue;
-      const nested = await walkFileEntry(entry, entry.name);
-      collected.push(...nested);
-    }
-    if (collected.length) return collected;
-  }
-
-  return Array.from(event.dataTransfer?.files || []);
-}
 
 async function openFolderPicker() {
   if (window.showDirectoryPicker) {
