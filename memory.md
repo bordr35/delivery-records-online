@@ -8,3 +8,4 @@
 - Next product direction: make Violation Packet a guided case builder and support normal proof screenshots/photos with private in-browser storage, thumbnail previews, notes, and packet evidence inventory.
 - v2.1.0 direction: proof shots should support normal mobile screenshots/photos, local thumbnail review, "what this proves" notes, downloadable image copies, and inclusion in the Violation Packet evidence inventory.
 - Current product vision: cloud sync is core, not optional forever. Use encrypted cloud sync so phone/desktop records and proof shots become one dataset, then use that dataset for delivery strategy analysis across apps, zones, miles, pay, issues, disputes, and proof habits.
+- Cloud sync should be account-managed, not shared-secret-managed. The sign-in flow should feel like a real product login, while still keeping browser-side encryption for the vault payload.

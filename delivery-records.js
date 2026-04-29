@@ -1,8 +1,10 @@
-const APP_VERSION = "2.2.0";
+const APP_VERSION = "2.3.0";
 const STORE = "delivery_records_online_v2";
 const LEGACY_STORE = "delivery_records_online_v1";
 const DRAFTS = "delivery_records_drafts_v2";
 const PROOFS = "delivery_records_proof_shots_v1";
+const ACCOUNT_META = "delivery_records_cloud_account_meta_v1";
+const ACCOUNT_PASS = "delivery_records_cloud_account_pass_v1";
 const SYNC_META = "delivery_records_cloud_sync_meta_v1";
 const SYNC_SECRET = "delivery_records_cloud_sync_secret_v1";
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -14,6 +16,7 @@ let currentPage = "dashboard";
 let currentExport = { filename: "record.txt", text: "" };
 let syncTimer = 0;
 let suppressCloudQueue = false;
+let accountPassword = sessionStorage.getItem(ACCOUNT_PASS) || "";
 
 const safeJson = (text, fallback) => {
   if (text == null || text === "") return fallback;
@@ -176,6 +179,30 @@ function syncMeta() {
 function saveSyncMeta(value) {
   localStorage.setItem(SYNC_META, JSON.stringify(value));
 }
+function accountMeta() {
+  return safeJson(localStorage.getItem(ACCOUNT_META), {});
+}
+function saveAccountMeta(value) {
+  localStorage.setItem(ACCOUNT_META, JSON.stringify(value));
+}
+function clearAccountMeta() {
+  localStorage.removeItem(ACCOUNT_META);
+}
+function saveAccountPassword(value, remember) {
+  accountPassword = value || "";
+  if (remember && accountPassword) sessionStorage.setItem(ACCOUNT_PASS, accountPassword);
+  else sessionStorage.removeItem(ACCOUNT_PASS);
+}
+function clearAccountPassword() {
+  accountPassword = "";
+  sessionStorage.removeItem(ACCOUNT_PASS);
+}
+function accountUnlocked() {
+  return Boolean(accountPassword);
+}
+function accountProfile() {
+  return accountMeta()?.accountId ? accountMeta() : null;
+}
 function cloudSecret() {
   return sessionStorage.getItem(SYNC_SECRET) || localStorage.getItem(SYNC_SECRET) || "";
 }
@@ -272,9 +299,60 @@ function applyBundle(bundle) {
   }
 }
 function queueCloudSync() {
-  if (suppressCloudQueue || !cloudSecret()) return;
+  if (suppressCloudQueue) return;
+  if (!accountUnlocked() && !cloudSecret()) return;
   clearTimeout(syncTimer);
   syncTimer = setTimeout(() => syncNow({ silent: true }), 1600);
+}
+async function apiJson(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "include",
+    cache: "no-store",
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || "request-failed");
+  return body;
+}
+async function loadCloudSession() {
+  try {
+    const body = await apiJson("/api/auth/me", { method: "GET", headers: {} });
+    saveAccountMeta(body.account);
+    return body.account;
+  } catch {
+    clearAccountMeta();
+    return null;
+  }
+}
+async function registerCloudAccount({ email, password, displayName, remember }) {
+  const body = await apiJson("/api/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, displayName })
+  });
+  saveAccountMeta(body.account);
+  saveAccountPassword(password, remember);
+  saveSyncMeta({ ...syncMeta(), accountId: body.account.accountId, enabled: true, provider: "account", lastError: "", lastErrorAt: "" });
+  return body.account;
+}
+async function signInCloudAccount({ email, password, remember }) {
+  const body = await apiJson("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password })
+  });
+  saveAccountMeta(body.account);
+  saveAccountPassword(password, remember);
+  saveSyncMeta({ ...syncMeta(), accountId: body.account.accountId, enabled: true, provider: "account", lastError: "", lastErrorAt: "" });
+  return body.account;
+}
+async function signOutCloudAccount() {
+  await apiJson("/api/auth/logout", { method: "POST", body: "{}" }).catch(() => {});
+  clearAccountMeta();
+  clearAccountPassword();
+  saveSyncMeta({ ...syncMeta(), enabled: false, provider: "" });
 }
 async function fetchCloudPayload(syncId) {
   const response = await fetch(`/api/sync?id=${syncId}`, { cache: "no-store" });
@@ -292,21 +370,44 @@ async function writeCloudPayload(syncId, payload) {
   if (!response.ok) throw new Error(body.error || "sync-write-failed");
   return body;
 }
+async function fetchVaultPayload(accountId) {
+  const body = await apiJson(`/api/vault?id=${accountId}`, { method: "GET", headers: {} });
+  return body.exists ? body.payload : null;
+}
+async function writeVaultPayload(accountId, payload) {
+  return apiJson(`/api/vault?id=${accountId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
 async function syncNow(options = {}) {
-  const secret = cloudSecret();
-  if (!secret) {
-    if (!options.silent) toast("Enter a cloud sync key first.", "err");
+  const account = accountProfile();
+  const secret = accountUnlocked() ? accountPassword : cloudSecret();
+  const useAccount = Boolean(account && account.accountId && accountUnlocked());
+  if (!useAccount && !secret) {
+    if (!options.silent) toast("Sign in or enter a cloud sync key first.", "err");
     return false;
   }
   try {
-    const id = await cloudId(secret);
-    const remotePayload = await fetchCloudPayload(id);
+    const id = useAccount ? account.accountId : await cloudId(secret);
+    const remotePayload = useAccount ? await fetchVaultPayload(id) : await fetchCloudPayload(id);
+    const vaultSalt = useAccount ? account.vaultSalt : null;
     const remoteBundle = remotePayload ? await decryptBundle(secret, remotePayload) : null;
     const merged = mergeBundles(localBundle(), remoteBundle);
     applyBundle(merged);
     const encrypted = await encryptBundle(secret, merged);
-    await writeCloudPayload(id, encrypted);
-    saveSyncMeta({ enabled: true, lastSyncedAt: new Date().toISOString(), syncIdPreview: `${id.slice(0, 8)}...${id.slice(-4)}` });
+    if (useAccount) {
+      await writeVaultPayload(id, encrypted);
+    } else {
+      await writeCloudPayload(id, encrypted);
+    }
+    saveSyncMeta({
+      enabled: true,
+      provider: useAccount ? "account" : "legacy",
+      lastSyncedAt: new Date().toISOString(),
+      syncIdPreview: `${id.slice(0, 8)}...${id.slice(-4)}`,
+      vaultSalt: vaultSalt || syncMeta().vaultSalt || ""
+    });
     updateAll(false);
     if (currentPage === "sync") show("sync");
     if (!options.silent) toast("Cloud sync complete.");
@@ -599,33 +700,60 @@ function renderStrategy() {
 }
 function renderSync() {
   const meta = syncMeta();
-  const connected = Boolean(cloudSecret());
-  const statusClass = meta.lastError ? "bad" : connected ? "good" : "warn";
-  const statusText = meta.lastError ? `Last error: ${meta.lastError}` : connected ? "Key loaded on this device" : "No cloud key loaded";
+  const account = accountProfile();
+  const signedIn = Boolean(account);
+  const unlocked = accountUnlocked();
+  const legacyConnected = Boolean(cloudSecret());
+  const statusClass = meta.lastError ? "bad" : signedIn ? "good" : legacyConnected ? "warn" : "warn";
+  const statusText = meta.lastError
+    ? `Last error: ${meta.lastError}`
+    : signedIn
+      ? unlocked ? "Account signed in and unlocked" : "Account signed in, vault locked"
+      : legacyConnected ? "Legacy key loaded on this device" : "No cloud account loaded";
   return `
-    <div class="rule"><h3>Encrypted Cloud Sync</h3>Use one private cloud key across your phone and desktop. Records and proof shots are encrypted in the browser before upload; the server stores ciphertext.</div>
+    <div class="rule"><h3>Cloud Account Sync</h3>Sign in once on each device, then keep your records and proof shots moving through an encrypted cloud vault. The browser still encrypts the payload before upload.</div>
     <section class="panel">
-      <div class="panel-head"><div><h3>Connect This Device</h3><p>Use a long phrase you can remember. Same key = same cloud vault.</p></div></div>
+      <div class="panel-head"><div><h3>Account Login</h3><p>Create your account once, then sign in anywhere you work.</p></div></div>
       <div class="panel-body">
         <div class="field-grid">
-          <div class="field full"><label for="sync-key">Cloud Sync Key</label><input id="sync-key" type="password" autocomplete="current-password" placeholder="Use a long private phrase"></div>
-          <label class="check-row full"><input id="sync-remember" type="checkbox"> Remember this key on this device</label>
+          <div class="field"><label for="sync-display">Display name</label><input id="sync-display" type="text" placeholder="e.g. Alex"></div>
+          <div class="field"><label for="sync-email">Email</label><input id="sync-email" type="email" autocomplete="email" placeholder="you@example.com"></div>
+          <div class="field"><label for="sync-pass">Password</label><input id="sync-pass" type="password" autocomplete="current-password" placeholder="Use a strong password"></div>
+          <label class="check-row full"><input id="sync-remember" type="checkbox"> Keep this device unlocked during this browser session</label>
         </div>
         <div class="form-actions">
-          <button class="btn primary" type="button" id="sync-connect">Connect + Sync</button>
+          <button class="btn primary" type="button" id="sync-create">Create Account</button>
+          <button class="btn ghost" type="button" id="sync-login">Sign In / Unlock</button>
+          <button class="btn ghost" type="button" id="sync-session">Load Session</button>
+          <button class="btn danger" type="button" id="sync-logout">Sign Out</button>
           <button class="btn ghost" type="button" id="sync-now">Sync Now</button>
-          <button class="btn ghost" type="button" id="sync-disconnect">Disconnect Device</button>
         </div>
         <div class="sync-status">
           <span class="sync-pill ${statusClass}">${esc(statusText)}</span>
           <span class="sync-pill">Last sync: ${meta.lastSyncedAt ? fmtDateTime(meta.lastSyncedAt) : "never"}</span>
           <span class="sync-pill">Vault: ${meta.syncIdPreview || "not set"}</span>
+          <span class="sync-pill">Mode: ${meta.provider || (signedIn ? "account" : legacyConnected ? "legacy" : "none")}</span>
+          <span class="sync-pill">${signedIn ? `Signed in as ${account.displayName || account.email}` : "Not signed in"}</span>
           <span class="sync-pill">Records: ${rawRecords().length}</span>
           <span class="sync-pill">Proof shots: ${proofShots().length}</span>
         </div>
       </div>
     </section>
-    <div class="rule yellow"><h3>Important</h3>If you forget the cloud key, encrypted cloud data cannot be decrypted. That is the privacy tradeoff. Keep the key somewhere safe.</div>`;
+    <section class="panel">
+      <div class="panel-head"><div><h3>Legacy Vault</h3><p>Existing key-based sync is still here so you can migrate or keep working while the account flow settles in.</p></div></div>
+      <div class="panel-body">
+        <div class="field-grid">
+          <div class="field full"><label for="sync-key">Legacy Sync Key</label><input id="sync-key" type="password" autocomplete="current-password" placeholder="Old private vault key"></div>
+          <label class="check-row full"><input id="sync-remember-legacy" type="checkbox"> Remember legacy key during this browser session</label>
+        </div>
+        <div class="form-actions">
+          <button class="btn ghost" type="button" id="sync-legacy-load">Load Legacy Key</button>
+          <button class="btn ghost" type="button" id="sync-legacy-sync">Legacy Sync Now</button>
+          <button class="btn danger" type="button" id="sync-legacy-clear">Clear Legacy Key</button>
+        </div>
+      </div>
+    </section>
+    <div class="rule yellow"><h3>Important</h3>The account flow is the main path now. Use the legacy vault only if you already started there and want to move old data forward.</div>`;
 }
 function renderBackup() {
   return `
@@ -812,6 +940,13 @@ function hydratePage(page) {
   }
   if (page === "packet") {
     $("#vp-date").value ||= todayIso();
+  }
+  if (page === "sync") {
+    const account = accountProfile();
+    if (account) {
+      $("#sync-email").value = account.email || "";
+      $("#sync-display").value = account.displayName || "";
+    }
   }
   if (page === "records") renderRecordList();
   bindPageControls();
@@ -1130,22 +1265,63 @@ $("#print-btn").addEventListener("click", () => window.print());
 $("#reload-app").addEventListener("click", () => location.reload());
 
 document.addEventListener("click", event => {
-  if (event.target.id === "sync-connect") {
-    const secret = $("#sync-key")?.value.trim();
-    if (!secret || secret.length < 12) return toast("Use a longer cloud sync key.", "err");
-    setCloudSecret(secret, Boolean($("#sync-remember")?.checked));
-    toast("Cloud key loaded. Syncing...");
-    syncNow();
+  if (event.target.id === "sync-create") {
+    const email = $("#sync-email")?.value.trim();
+    const password = $("#sync-pass")?.value || "";
+    const displayName = $("#sync-display")?.value.trim() || email.split("@")[0] || "Delivery Records";
+    if (!email || !password) return toast("Enter an email and password first.", "err");
+    registerCloudAccount({ email, password, displayName, remember: Boolean($("#sync-remember")?.checked) })
+      .then(() => toast("Account created. Syncing now..."))
+      .then(() => syncNow())
+      .catch(error => toast(`Could not create account: ${error.message}`, "err"));
+  }
+  if (event.target.id === "sync-login") {
+    const email = $("#sync-email")?.value.trim();
+    const password = $("#sync-pass")?.value || "";
+    if (!email || !password) return toast("Enter your email and password first.", "err");
+    signInCloudAccount({ email, password, remember: Boolean($("#sync-remember")?.checked) })
+      .then(() => toast("Signed in. Syncing now..."))
+      .then(() => syncNow())
+      .catch(error => toast(`Could not sign in: ${error.message}`, "err"));
+  }
+  if (event.target.id === "sync-session") {
+    loadCloudSession().then(account => {
+      if (account) {
+        $("#sync-email").value = account.email || "";
+        $("#sync-display").value = account.displayName || "";
+        toast("Session loaded.");
+      } else {
+        toast("No active session found.", "err");
+      }
+    });
+  }
+  if (event.target.id === "sync-logout") {
+    signOutCloudAccount().then(() => {
+      toast("Signed out.");
+      show("sync");
+    });
   }
   if (event.target.id === "sync-now") {
     toast("Syncing cloud vault...");
     syncNow();
   }
-  if (event.target.id === "sync-disconnect") {
+  if (event.target.id === "sync-legacy-load") {
+    const secret = $("#sync-key")?.value.trim();
+    if (!secret || secret.length < 12) return toast("Use a longer legacy key.", "err");
+    setCloudSecret(secret, Boolean($("#sync-remember-legacy")?.checked));
+    saveSyncMeta({ ...syncMeta(), provider: "legacy", enabled: true });
+    toast("Legacy key loaded.");
+  }
+  if (event.target.id === "sync-legacy-sync") {
+    const secret = cloudSecret();
+    if (!secret) return toast("Load the legacy key first.", "err");
+    syncNow();
+  }
+  if (event.target.id === "sync-legacy-clear") {
     clearCloudSecret();
-    saveSyncMeta({ ...syncMeta(), enabled: false });
+    saveSyncMeta({ ...syncMeta(), provider: "", enabled: false });
     show("sync");
-    toast("Cloud key removed from this device.");
+    toast("Legacy key removed from this device.");
   }
   if (event.target.id === "packet-preview") openExport(buildViolationPacket());
   if (event.target.id === "packet-copy") navigator.clipboard.writeText(buildViolationPacket().text).then(() => toast("Appeal packet copied."));

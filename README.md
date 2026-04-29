@@ -31,7 +31,7 @@ Fast options:
 - Vercel: import this folder/project. `vercel.json` is already included.
 - GitHub Pages: publish this folder as the site root, then open `delivery-records.html`.
 
-Important: Delivery Records is local-first and can also cloud-sync through the `Cloud Sync` page when a Vercel Blob store is connected. Sync payloads are encrypted in the browser with the user's cloud sync key before upload. JSON backup remains a device restore file, not a violation/dispute evidence file.
+Important: Delivery Records is local-first and can also cloud-sync through the `Cloud Sync` page when a Vercel Blob store is connected. The main path is now a real account sign-in flow, and the browser encrypts the sync payload before upload. JSON backup remains a device restore file, not a violation/dispute evidence file.
 
 Primary shift URL after deployment:
 
