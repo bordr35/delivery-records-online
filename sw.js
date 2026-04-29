@@ -1,8 +1,10 @@
-const CACHE_NAME = "delivery-records-static-v1";
+const CACHE_NAME = "delivery-records-static-v3";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./delivery-records.html",
+  "./delivery-records.css",
+  "./delivery-records.js",
   "./manifest.webmanifest"
 ];
 
