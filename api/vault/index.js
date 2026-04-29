@@ -1,4 +1,4 @@
-import { readCurrentAccount, readJsonBody, readVault, saveVault } from "../../_lib/account.mjs";
+import { readCurrentAccount, readJsonBody, readVault, saveVault } from "../_lib/account.mjs";
 
 function send(response, status, payload) {
   response.statusCode = status;
