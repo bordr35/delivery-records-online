@@ -37,13 +37,14 @@
         <button class="nav" data-page="proof">Proof Note</button>
         <button class="nav" data-page="dispute">Dispute / Support</button>
         <button class="nav" data-page="weekly">Weekly Review</button>
+        <button class="nav" data-page="packet">Violation Packet</button>
         <button class="nav" data-page="guide">Workflow Guide</button>
       </div>
-      <div class="side-note">Works from static hosting.<br>Records save in this browser.<br>Use Export Backup before switching devices.</div>
+      <div class="side-note">Works from static hosting.<br>Records save in this browser.<br>JSON is backup only. Use Violation Packet for appeals.</div>
     </aside>
     <div class="overlay" id="overlay"></div>
     <main class="main">
-      <header class="top"><button id="menu">Menu</button><div class="title" id="page-title">Dashboard</div><div class="date-chip" id="today"></div><div class="actions"><button class="btn ghost" data-page-jump="saved">Records</button><button class="btn primary" data-page-jump="daily">+ Daily Log</button></div></header>
+      <header class="top"><button id="menu">Menu</button><div class="title" id="page-title">Dashboard</div><div class="date-chip" id="today"></div><div class="actions"><button class="btn ghost" data-page-jump="saved">Records</button><button class="btn ghost" data-page-jump="packet">Violation Packet</button><button class="btn primary" data-page-jump="daily">+ Daily Log</button></div></header>
       <div class="wrap" id="pages"></div>
     </main>
   </div>
@@ -97,11 +98,17 @@
         <div class="grid"><div class="stat"><span>Total Records</span><b id="s-total">0</b></div><div class="stat"><span>Daily Logs</span><b id="s-daily">0</b></div><div class="stat"><span>Receipts</span><b id="s-receipt">0</b></div><div class="stat"><span>Weekly Reviews</span><b id="s-weekly">0</b></div></div>
         <div class="rule"><h3>Core Save Rule</h3>If it affects money, taxes, proof, disputes, mileage, or safety, save it. If you are not sure, save it.</div>
         <div class="rule blue"><h3>Online Setup</h3>This page is a static web app. Host this folder on Netlify, Vercel, or GitHub Pages and it will stay available even when your computer is off.</div>
-        <div class="rule yellow"><h3>Before Your Shift</h3>Open Daily Log, fill the basics, save at the end, then export a backup when you are done.</div>
+        <div class="rule yellow"><h3>If There Is A Violation</h3>Use Dispute / Support to capture the incident, then open Violation Packet to generate a readable appeal draft and evidence timeline. JSON backup is not the dispute packet.</div>
       </section>
-      <section class="page" id="page-saved"><div class="form-actions"><button class="btn primary" id="backup-btn">Export Backup JSON</button><label class="btn ghost">Import Backup JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button class="btn danger" id="clear-all">Clear All</button></div><div id="saved-list"></div></section>
+      <section class="page" id="page-saved"><div class="rule yellow"><h3>Backup vs Evidence</h3>JSON is only for restoring this app on a device. For a violation, use the Violation Packet button below and send the plain text/PDF-style packet instead.</div><div class="form-actions"><button class="btn primary" data-page-jump="packet">Build Violation Packet</button><button class="btn ghost" id="backup-btn">Device Backup JSON</button><label class="btn ghost">Restore JSON<input id="import-file" type="file" accept="application/json,.json" hidden></label><button class="btn danger" id="clear-all">Clear All</button></div><div id="saved-list"></div></section>
       ${Object.entries(forms).map(([k,f])=>`<section class="page" id="page-${k}">${f.html()}<div class="form-actions"><button class="btn primary" data-save="${k}">Save Record</button><button class="btn ghost" data-preview="${k}">Preview</button><button class="btn ghost" data-clear="${k}">Clear</button></div></section>`).join("")}
-      <section class="page" id="page-guide"><div class="rule"><h3>1. Capture Right Away</h3>Save order screens, payout screens, merchant issues, support chats, receipts, and anything tied to money or proof.</div><div class="rule blue"><h3>2. Sort Folders</h3>01_Daily_Logs, 02_Receipts_Invoices, 03_Proof_Photos, 04_Disputes_Support, 05_Weekly_Reviews, 06_Mileage_Expenses, 07_Archive.</div><div class="rule yellow"><h3>3. Export Backups</h3>Because this static version saves privately in your browser, export a backup before clearing browser data or switching devices.</div></section>`;
+      <section class="page" id="page-packet">
+        <div class="rule"><h3>Violation Response Packet</h3>This creates the human-readable packet you use for deactivation warnings, missing pay, customer claims, contract violations, safety reports, or app disputes.</div>
+        ${section("Appeal Basics",field("vp-date","Packet Date","date")+select("vp-app","Platform")+field("vp-case","Case / Ticket Number")+field("vp-order","Order ID(s)")+select("vp-type","Violation / Issue Type",["","Missing Pay","Wrong Pay","Customer Claim","Non-delivery Claim","Contract Violation","Deactivation Warning","Merchant Issue","Safety Issue","App Bug","Other"])+field("vp-money","Money At Stake","number","step='0.01'")+field("vp-request","Requested Outcome"))}
+        ${section("Plain-English Response",textarea("vp-accused","What They Say Happened")+textarea("vp-response","Your Response / What Actually Happened")+textarea("vp-proof","Proof You Have")+textarea("vp-extra","Anything Else Support Should Know"))}
+        <div class="form-actions"><button class="btn primary" id="packet-preview">Preview Violation Packet</button><button class="btn ghost" id="packet-download">Download Packet .txt</button><button class="btn ghost" id="packet-copy">Copy Appeal Text</button></div>
+      </section>
+      <section class="page" id="page-guide"><div class="rule"><h3>1. Capture Right Away</h3>Save order screens, payout screens, merchant issues, support chats, receipts, and anything tied to money or proof.</div><div class="rule blue"><h3>2. Fight A Violation</h3>Fill Dispute / Support, save related proof notes, then open Violation Packet. Send the generated plain text packet or save it as PDF/text for your records.</div><div class="rule yellow"><h3>3. Device Backups</h3>JSON backup is only for restoring this app if your browser/device changes. It is not meant to be sent to a gig app or support team.</div></section>`;
     function val(id){return document.getElementById(id)?.value.trim()||""}
     function tog(id){return document.querySelector(`.toggle[data-id="${id}"] .pill.on`)?.dataset.val||""}
     function recs(){try{return JSON.parse(localStorage.getItem(STORE)||"[]")}catch{return[]}}
@@ -128,7 +135,74 @@
       });
       return {filename:`${f.fn()}.txt`,text:lines.join("\n")};
     }
-    function show(page){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(`page-${page}`)?.classList.add("active");document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.page===page));document.getElementById("page-title").textContent=forms[page]?.title||({dash:"Dashboard",saved:"Saved Records",guide:"Workflow Guide"}[page]||page);document.getElementById("side").classList.remove("open");document.getElementById("overlay").classList.remove("show");if(page==="saved")renderSaved();updateNames();scrollTo(0,0)}
+    function buildViolationPacket(){
+      const saved=[...recs()].sort((a,b)=>new Date(a.saved)-new Date(b.saved));
+      const related=saved.filter(r=>["dispute","proof","daily","receipt","mileage","expense"].includes(r.form));
+      const type=val("vp-type")||"Delivery platform violation / support issue";
+      const app=val("vp-app")||"Delivery platform";
+      const caseNum=val("vp-case")||"Not provided yet";
+      const orderIds=val("vp-order")||"Not provided yet";
+      const moneyAtStake=val("vp-money")?`$${val("vp-money")}`:"Not listed";
+      const requested=val("vp-request")||"Please review the attached evidence, correct the record, and restore/confirm my standing and pay as appropriate.";
+      const accused=val("vp-accused")||"The platform reported an issue or violation. See response and saved records below.";
+      const response=val("vp-response")||"I dispute the issue based on my saved shift records, proof notes, support notes, and related timestamps.";
+      const proof=val("vp-proof")||"Saved screenshots/photos/receipts/support notes are listed in the evidence timeline below.";
+      const extra=val("vp-extra")||"I can provide additional screenshots or files if requested.";
+      const filename=`${val("vp-date")||todayIso()}_${appCode(app)}_${clean(type)||"violation"}_response_packet.txt`;
+      const summary=[
+        "VIOLATION / DISPUTE RESPONSE PACKET",
+        "=".repeat(56),
+        `Packet date: ${val("vp-date")||todayIso()}`,
+        `Platform: ${app}`,
+        `Case / ticket number: ${caseNum}`,
+        `Order ID(s): ${orderIds}`,
+        `Issue type: ${type}`,
+        `Money at stake: ${moneyAtStake}`,
+        `Requested outcome: ${requested}`,
+        "",
+        "COPY/PASTE APPEAL MESSAGE",
+        "-".repeat(56),
+        `Hello, I am requesting a manual review of this ${type.toLowerCase()} issue.`,
+        "",
+        `What the platform says happened: ${accused}`,
+        "",
+        `My response: ${response}`,
+        "",
+        `Proof available: ${proof}`,
+        "",
+        `Requested outcome: ${requested}`,
+        "",
+        `Additional context: ${extra}`,
+        "",
+        "Please review the timeline and saved records below before making or keeping any adverse action on my account.",
+        "",
+        "EVIDENCE CHECKLIST",
+        "-".repeat(56),
+        `[ ] Order / offer screen saved`,
+        `[ ] Pickup proof saved`,
+        `[ ] Dropoff proof saved`,
+        `[ ] Support chat / call notes saved`,
+        `[ ] Payout / earnings screenshot saved`,
+        `[ ] Receipt / expense proof saved if relevant`,
+        `[ ] Mileage / shift log saved if relevant`,
+        "",
+        "SAVED RECORD TIMELINE",
+        "-".repeat(56)
+      ];
+      const recordLines=related.length?related.flatMap((r,i)=>[
+        `${i+1}. ${forms[r.form]?.title||r.form} | ${r.filename}`,
+        `Saved: ${new Date(r.saved).toLocaleString()}`,
+        r.text,
+        ""
+      ]):["No saved records are attached yet. Save a Dispute / Support record and any Proof Notes before sending this packet.",""];
+      const footer=[
+        "END OF PACKET",
+        "-".repeat(56),
+        "Note: JSON backup files are only for restoring the app. Send this plain text packet, screenshots, photos, PDFs, or exported records to support instead."
+      ];
+      return {filename,text:[...summary,...recordLines,...footer].join("\n")};
+    }
+    function show(page){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(`page-${page}`)?.classList.add("active");document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.page===page));document.getElementById("page-title").textContent=forms[page]?.title||({dash:"Dashboard",saved:"Saved Records",packet:"Violation Packet",guide:"Workflow Guide"}[page]||page);document.getElementById("side").classList.remove("open");document.getElementById("overlay").classList.remove("show");if(page==="saved")renderSaved();updateNames();scrollTo(0,0)}
     function stats(){const r=recs();document.getElementById("nav-count").textContent=r.length;document.getElementById("s-total").textContent=r.length;document.getElementById("s-daily").textContent=r.filter(x=>x.form==="daily").length;document.getElementById("s-receipt").textContent=r.filter(x=>x.form==="receipt").length;document.getElementById("s-weekly").textContent=r.filter(x=>x.form==="weekly").length}
     function renderSaved(){const r=recs();stats();document.getElementById("saved-list").innerHTML=r.length?r.map(x=>`<div class="record"><span class="type">${forms[x.form]?.title||x.form}</span><span class="name">${x.filename}</span><span class="stamp">${new Date(x.saved).toLocaleString()}</span><span><button class="btn ghost" data-view="${x.id}">View</button> <button class="btn ghost" data-down="${x.id}">Download</button> <button class="btn danger" data-del="${x.id}">Delete</button></span></div>`).join(""):`<div class="empty">No records yet.<br>Fill out a form and hit Save Record.</div>`}
     let cur={filename:"record.txt",text:""};
@@ -152,6 +226,9 @@
     document.getElementById("modal").onclick=e=>{if(e.target.id==="modal")document.getElementById("modal").classList.remove("show")};
     document.getElementById("copy-btn").onclick=()=>navigator.clipboard.writeText(cur.text).then(()=>toast("Copied"));
     document.getElementById("download-btn").onclick=()=>download(cur.filename,cur.text);
+    document.getElementById("packet-preview").onclick=()=>openExport(buildViolationPacket());
+    document.getElementById("packet-download").onclick=()=>{const exp=buildViolationPacket();download(exp.filename,exp.text);toast("Violation packet downloaded")};
+    document.getElementById("packet-copy").onclick=()=>navigator.clipboard.writeText(buildViolationPacket().text).then(()=>toast("Appeal packet copied"));
     document.getElementById("backup-btn").onclick=()=>download(`delivery-records-backup-${todayIso()}.json`,JSON.stringify({version:1,exported:new Date().toISOString(),records:recs()},null,2));
     document.getElementById("import-file").onchange=e=>{const file=e.target.files[0];if(!file)return;file.text().then(txt=>{const data=JSON.parse(txt);if(!Array.isArray(data.records))throw new Error("Bad backup");saveRecs(data.records);renderSaved();toast("Backup imported")}).catch(()=>toast("Could not import backup","err"))};
     document.getElementById("clear-all").onclick=()=>{if(confirm("Delete ALL saved records in this browser?")){localStorage.removeItem(STORE);renderSaved();stats();toast("All records cleared","err")}};
